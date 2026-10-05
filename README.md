@@ -2,38 +2,33 @@
 
 HermesStack is a local secure control plane for AI-agent development workspaces.
 
-**M3 Sessions is complete.** Herdr 0.9.3 is pinned inside the managed workspace and owns persistent project sessions for Claude Code, Codex, Hermes Agent and OpenCode. tmux remains available as a simple fallback multiplexer.
+**M4 Network & Security is complete.** HermesStack now combines the existing isolated agent/session runtime with validated corporate proxy/CA support, protected project secrets, live security inspection and actionable doctor diagnostics.
 
 ```text
 hstack init
 hstack project add mascara C:\\Dev\\Mascara
 
-hstack session init mascara
-hstack session status mascara
-hstack session run codex mascara --name reviewer -- -m gpt-5.4
-hstack herdr mascara
+hstack proxy set --https http://proxy.corp:8080 --no-proxy corp.internal
+set OPENAI_API_KEY=...
+hstack secret set OPENAI_API_KEY --project mascara --agents codex --from-env OPENAI_API_KEY
+
+hstack up mascara
+hstack security inspect mascara
+hstack doctor mascara
 ```
 
-Detach from Herdr and return later: its server and agent panes keep running while the workspace container is alive. After a container recreation, Herdr restores the saved project layout and current official agent integrations provide native conversation restore when the upstream agent has reported a resumable session id.
+Secrets are never written into `hstack.yaml`, `projects.yaml` or Compose. Policy metadata records only the project, secret name and allowed agents. Direct agent launches receive authorized values only for the lifetime of that exec process.
 
-Direct M2 launch remains available as an explicit fallback:
-
-```text
-hstack claude mascara
-hstack codex mascara
-hstack hermes mascara
-hstack opencode mascara
-hstack tmux mascara
-```
+Herdr 0.9.3 continues to own persistent project sessions for Claude Code, Codex, Hermes Agent and OpenCode, with tmux as a fallback.
 
 ## Project-scoped state
 
 Authentication, agent state and Herdr session state remain isolated per project under `~/.hstack/data/projects/<project>/`. HermesStack never implicitly mounts the host user's agent, SSH, Docker or cloud credentials into the workspace.
 
-Herdr uses the project HOME (`/home/hstack`) and the deterministic session name `hstack-<project>`. Its official Claude, Codex, Hermes and OpenCode integrations are installed into those same project-scoped agent homes.
+Corporate CA trust is additive; HermesStack does not disable TLS verification. Proxy endpoints containing inline credentials are rejected.
 
-See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M3-REPORT.md`.
+See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M4-REPORT.md`.
 
 ## Development workflow
 
-Development changes are batched before they are pushed to GitHub. Normal pushes to `main` do not run CI. A consolidated pull request is opened only when a substantial batch is ready for validation; that PR runs one Linux gate. Optional Windows validation stays manual. See `docs/agile/CI-POLICY.md`.
+Every pull request runs Linux and Windows validation. Linux also executes the M3 regression gate and the current M4 Docker end-to-end gate. A successful push to `main` repeats validation and then publishes `win-x64`, `linux-x64` and `linux-arm64` artifacts with SHA-256 manifests.
