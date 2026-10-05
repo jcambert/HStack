@@ -2,6 +2,7 @@ using HermesStack.Application.Abstractions;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
+using HermesStack.Application.Network;
 using HermesStack.Docker.Security;
 using Spectre.Console;
 
@@ -12,7 +13,9 @@ internal sealed class SecurityCliService(
     WorkspaceDeploymentPlanBuilder plans,
     DockerWorkspaceSecurityInspector inspector,
     SecurityInspectionService evaluator,
-    ISecretPolicyStore secretPolicies)
+    ISecretPolicyStore secretPolicies,
+    ITokenOptimizationStore tokenStore,
+    IProxyConfigurationStore proxyStore)
 {
     public async Task<int> RunAsync(string[] args)
     {
@@ -34,6 +37,20 @@ internal sealed class SecurityCliService(
                 .ToArray()
         };
         var result = evaluator.Evaluate(snapshot);
+        var tokenConfiguration = await tokenStore.GetAsync(project.Id);
+        var proxy = ProxyConfigurationPolicy.ValidateAndNormalize(await proxyStore.GetAsync());
+        var tokenHooks = tokenConfiguration.EffectiveProviders.Count == 0
+            ? "-"
+            : string.Join(
+                "; ",
+                tokenConfiguration.EffectiveProviders.Select(value =>
+                    $"{value.ProviderId}[{string.Join(",", value.Agents)}]"));
+        var proxyEndpoints = proxy.Enabled
+            ? string.Join(
+                ", ",
+                new[] { proxy.Http, proxy.Https }
+                    .Where(static value => !string.IsNullOrWhiteSpace(value)))
+            : "-";
 
         var summary = new Table().AddColumn("Property").AddColumn("Value");
         summary.AddRow("Security score", result.Score.ToString());
@@ -52,6 +69,14 @@ internal sealed class SecurityCliService(
         summary.AddRow("Published ports", Markup.Escape(List(snapshot.PublishedPorts)));
         summary.AddRow("Environment", Markup.Escape(List(snapshot.EnvironmentVariables)));
         summary.AddRow("Secrets", Markup.Escape(List(snapshot.SecretNames)));
+        summary.AddRow("Token optimizer hooks", Markup.Escape(tokenHooks));
+        summary.AddRow("Proxy endpoints", Markup.Escape(proxyEndpoints));
+        summary.AddRow(
+            "Unexpected prompt/content logging",
+            tokenConfiguration.EffectiveProviders.Any(value =>
+                string.Equals(value.ProviderId, "rtk", StringComparison.OrdinalIgnoreCase))
+                ? "blocked: RTK recall disabled; tracking DB on /tmp tmpfs"
+                : "none configured");
         AnsiConsole.Write(summary);
 
         var mounts = new Table()
