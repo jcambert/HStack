@@ -81,14 +81,14 @@ internal sealed class TokenCliService(
 
             foreach (var project in projectList)
             {
-                var configuration = await tokens.GetAsync(project.Id);
+                var projectConfiguration = await tokens.GetAsync(project.Id);
                 table.AddRow(
                     Markup.Escape(project.Id),
-                    configuration.Enabled ? "yes" : "no",
-                    configuration.Profile.ToString().ToLowerInvariant(),
+                    projectConfiguration.Enabled ? "yes" : "no",
+                    projectConfiguration.Profile.ToString().ToLowerInvariant(),
                     Markup.Escape(string.Join(
                         ",",
-                        configuration.EffectiveProviders.Select(static value => value.ProviderId))));
+                        projectConfiguration.EffectiveProviders.Select(static value => value.ProviderId))));
             }
 
             AnsiConsole.Write(table);
