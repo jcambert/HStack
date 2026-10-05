@@ -11,6 +11,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -46,3 +49,48 @@ jobs:
       - run: dotnet restore HermesStack.slnx
       - run: dotnet build HermesStack.slnx --no-restore -c Release
       - run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
+
+  publish-artifacts:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs:
+      - linux-m3
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - win-x64
+          - linux-x64
+          - linux-arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Publish hstack
+        run: >
+          dotnet publish src/HermesStack.Cli/HermesStack.Cli.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o artifacts/${{ matrix.rid }}
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            (cd "artifacts/${{ matrix.rid }}" && zip -qr "../../dist/hstack-${{ matrix.rid }}.zip" .)
+          else
+            tar -C "artifacts/${{ matrix.rid }}" -czf "dist/hstack-${{ matrix.rid }}.tar.gz" .
+          fi
+          (cd dist && sha256sum * > "hstack-${{ matrix.rid }}.sha256")
+      - name: Upload delivery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hstack-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
