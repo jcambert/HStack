@@ -116,7 +116,7 @@ public sealed class RtkTokenOptimizer(
         var result = await orchestrator.ExecCaptureAsync(
             new WorkspaceExecutionRequest(
                 plan,
-                ["rtk", "gain"],
+                ["rtk", "gain", "--all", "--format", "json"],
                 Interactive: false),
             cancellationToken);
         if (!result.IsSuccess)
