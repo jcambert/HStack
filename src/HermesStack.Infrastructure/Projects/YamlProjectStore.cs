@@ -95,6 +95,7 @@ public sealed class YamlProjectStore(IDataRootProvider dataRoot) : IProjectStore
         public string? Orchestrator { get; set; }
         public ResourceDto? Resources { get; set; }
         public List<PortDto>? Ports { get; set; }
+        public string StateScope { get; set; } = "isolated";
 
         public ProjectDefinition ToDefinition() => new(
             Id,
@@ -104,7 +105,8 @@ public sealed class YamlProjectStore(IDataRootProvider dataRoot) : IProjectStore
             Access,
             Orchestrator,
             Resources?.ToDefinition(),
-            Ports?.Select(static p => p.ToDefinition()).ToArray());
+            Ports?.Select(static p => p.ToDefinition()).ToArray(),
+            StateScope);
 
         public static ProjectDto FromDefinition(ProjectDefinition project) => new()
         {
@@ -115,7 +117,8 @@ public sealed class YamlProjectStore(IDataRootProvider dataRoot) : IProjectStore
             Access = project.Access,
             Orchestrator = project.Orchestrator,
             Resources = ResourceDto.FromDefinition(project.EffectiveResources),
-            Ports = project.EffectivePorts.Select(PortDto.FromDefinition).ToList()
+            Ports = project.EffectivePorts.Select(PortDto.FromDefinition).ToList(),
+            StateScope = project.StateScope
         };
     }
 

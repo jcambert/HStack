@@ -24,6 +24,8 @@ public enum IntegrationCapability
     HealthChecks,
     InteractiveTty,
     PersistentHome,
+    Authentication,
+    ProjectScopedState,
     Mcp,
     AgentHooks,
     SharedMemory,
