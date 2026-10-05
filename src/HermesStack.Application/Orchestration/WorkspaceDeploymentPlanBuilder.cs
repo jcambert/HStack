@@ -1,4 +1,5 @@
 using HermesStack.Application.Abstractions;
+using HermesStack.Application.Network;
 using HermesStack.Application.Security;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Domain.Projects;
@@ -10,7 +11,8 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     HostMountValidator mountValidator,
     ICertificateBundleService certificateBundleService,
     string baseComposeFile,
-    string workspaceImage = "hstack/workspace-full:0.3.0") : IWorkspaceDeploymentPlanBuilder
+    string workspaceImage = "hstack/workspace-full:0.4.0",
+    IProxyConfigurationStore? proxyConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
 {
     public async Task<WorkspaceDeploymentPlan> BuildAsync(
         ProjectDefinition project,
@@ -26,7 +28,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
         if (!string.Equals(project.StateScope, "isolated", StringComparison.OrdinalIgnoreCase))
         {
             throw new NotSupportedException(
-                $"State scope '{project.StateScope}' is not supported in M2. Project agent state is isolated by default.");
+                $"State scope '{project.StateScope}' is not supported. Project agent state is isolated by default.");
         }
 
         var projectDataRoot = dataRoot.GetProjectDataRoot(project.Id);
@@ -87,6 +89,30 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             ["TERMINAL_ENV"] = "local",
             ["OPENCODE_DISABLE_AUTOUPDATE"] = "1"
         };
+
+        if (proxyConfigurationStore is not null)
+        {
+            var proxy = ProxyConfigurationPolicy.ValidateAndNormalize(
+                await proxyConfigurationStore.GetAsync(cancellationToken));
+            if (proxy.Enabled)
+            {
+                if (!string.IsNullOrWhiteSpace(proxy.Http))
+                {
+                    environment["HTTP_PROXY"] = proxy.Http;
+                    environment["http_proxy"] = proxy.Http;
+                }
+
+                if (!string.IsNullOrWhiteSpace(proxy.Https))
+                {
+                    environment["HTTPS_PROXY"] = proxy.Https;
+                    environment["https_proxy"] = proxy.Https;
+                }
+
+                var noProxy = string.Join(",", proxy.EffectiveNoProxy);
+                environment["NO_PROXY"] = noProxy;
+                environment["no_proxy"] = noProxy;
+            }
+        }
 
         var corporateBundle = await certificateBundleService.BuildCorporateBundleAsync(cancellationToken);
         if (corporateBundle is not null)
