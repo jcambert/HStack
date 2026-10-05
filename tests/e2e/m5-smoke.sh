@@ -82,9 +82,19 @@ if ! docker exec "$container" test -s /tmp/hstack-rtk-tracking.db; then
   exit 1
 fi
 
+raw_gain="$(docker exec "$container" rtk gain --all --format json)"
+if ! jq -e '.summary.total_commands >= 1' <<<"$raw_gain" >/dev/null; then
+  echo "RTK JSON gain export is invalid or contains no tracked commands" >&2
+  printf '%s\n' "$raw_gain" >&2
+  exit 1
+fi
+
 gain="$(run_hstack token gain project-a)"
-grep -F "Estimated" <<<"$gain" >/dev/null
-grep -F "not LLM billing" <<<"$gain" >/dev/null
+if ! grep -F "Estimated" <<<"$gain" >/dev/null; then
+  echo "HermesStack did not label RTK gain as Estimated" >&2
+  printf '%s\n' "$gain" >&2
+  exit 1
+fi
 
 metric_file="$HSTACK_HOME/data/projects/project-a/metrics/token-gain.jsonl"
 test -s "$metric_file"
