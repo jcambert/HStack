@@ -42,4 +42,8 @@ public sealed record IntegrationDescriptor(
     IntegrationKind Kind,
     IReadOnlySet<IntegrationCapability> Capabilities,
     bool RequiredForMvp = false,
-    string Strategy = "integrate");
+    string Strategy = "integrate",
+    string? Version = null,
+    string Status = "Unknown",
+    IReadOnlySet<string>? SupportedAgents = null,
+    string? Source = null);
