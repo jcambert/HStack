@@ -14,7 +14,14 @@ public sealed record ToolchainVersions(
     string HermesVersion,
     string HermesReleaseTag,
     string HermesCommit,
-    string OpenCodeVersion);
+    string OpenCodeVersion,
+    string RtkVersion,
+    string RtkReleaseTag,
+    string RtkSha256X64,
+    string RtkSha256Arm64,
+    string CavemanVersion,
+    string CavemanReleaseTag,
+    string CavemanCommit);
 
 public sealed class ToolchainLockService
 {
@@ -49,7 +56,14 @@ public sealed class ToolchainLockService
             Require(document.Tools?.Hermes?.Version, "tools.hermes.version"),
             Require(document.Tools?.Hermes?.ReleaseTag, "tools.hermes.releaseTag"),
             Require(document.Tools?.Hermes?.Commit, "tools.hermes.commit"),
-            Require(document.Tools?.OpenCode?.Version, "tools.openCode.version"));
+            Require(document.Tools?.OpenCode?.Version, "tools.openCode.version"),
+            Require(document.Tools?.Rtk?.Version, "tools.rtk.version"),
+            Require(document.Tools?.Rtk?.ReleaseTag, "tools.rtk.releaseTag"),
+            RequireDigest(document.Tools?.Rtk?.Sha256X64, "tools.rtk.sha256X64"),
+            RequireDigest(document.Tools?.Rtk?.Sha256Arm64, "tools.rtk.sha256Arm64"),
+            Require(document.Tools?.Caveman?.Version, "tools.caveman.version"),
+            Require(document.Tools?.Caveman?.ReleaseTag, "tools.caveman.releaseTag"),
+            Require(document.Tools?.Caveman?.Commit, "tools.caveman.commit"));
     }
 
     private static string Require(string? value, string key)
@@ -94,6 +108,8 @@ public sealed class ToolchainLockService
         public ToolEntry? ClaudeCode { get; set; }
         public ToolEntry? Codex { get; set; }
         public ToolEntry? OpenCode { get; set; }
+        public ToolEntry? Rtk { get; set; }
+        public ToolEntry? Caveman { get; set; }
     }
 
     public sealed class ToolEntry
