@@ -18,28 +18,29 @@ Mandatory workspace invariants:
 
 ## Agent and session state
 
-Agent authentication/state is isolated per project. Codex uses a project `CODEX_HOME`, Claude a project `CLAUDE_CONFIG_DIR`, Hermes a project `HERMES_HOME`, and OpenCode project config/data mounts.
+Agent authentication/state is isolated per project. Herdr runs only inside the selected workspace and persists under that project's HOME. tmux remains a fallback inside the same sandbox.
 
-Herdr runs only inside the selected workspace. `HERDR_SESSION=hstack-<project>` and Herdr snapshots persist under that project's HOME. tmux is a fallback inside the same sandbox.
+## Corporate network and secrets
 
-## M4 corporate network policy
+Proxy configuration supports uppercase/lowercase HTTP(S)_PROXY and NO_PROXY variants. Inline proxy credentials are rejected. Corporate CA support remains additive.
 
-Proxy configuration supports `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and lowercase variants. Mandatory exclusions include localhost, loopback and `host.docker.internal`. Inline proxy credentials are rejected so credentials cannot enter `hstack.yaml`.
+Secret values never belong in `hstack.yaml`, `projects.yaml` or Compose. Protected values are released only when project + agent + explicit allow-list policy match.
 
-Corporate CA support remains additive. HermesStack never uses `curl -k`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `GIT_SSL_NO_VERIFY=true` or equivalent TLS bypasses.
+## M5 token optimization
 
-## M4 protected secrets
+RTK v0.51.0 is installed from a release artifact whose SHA-256 is pinned in `toolchain.lock.yaml`. Caveman v2.7.0 source is pinned to its signed release commit.
 
-Secret values never belong in `hstack.yaml`, `projects.yaml` or Compose.
+RTK is the default optimizer for safe/balanced profiles. Caveman is semantic compression and is restricted to aggressive/custom profiles. RTK + Caveman is PotentiallyLossy and requires explicit consent.
 
-`LocalProtectedSecretStore` uses Windows DPAPI current-user protection on Windows. On Unix-like hosts it uses AES-256-GCM and a locally generated master key restricted to the current user. `secrets.yaml` stores policy metadata only.
+The RTK upstream release can record command strings in its tracking database and can retain raw command output for recall. HermesStack mitigates this by:
 
-A secret is resolved only when project + agent + explicit policy match. Direct agent launch passes the value to the selected `docker compose exec` process environment; the long-lived workspace service environment does not contain the secret.
+- setting `RTK_DB_PATH=/tmp/hstack-rtk-tracking.db` so tracking is ephemeral on the workspace tmpfs;
+- disabling RTK recall during provider setup;
+- setting `RTK_RECALL=0`;
+- setting `RTK_TELEMETRY_DISABLED=1`;
+- never copying RTK's raw history into HermesStack durable state;
+- persisting only aggregate token-gain records.
 
-`ISecretRedactor` masks known values and common token shapes before diagnostic error output.
+`hstack token gain` classifies RTK data as Estimated, not Measured. It does not infer provider cost savings.
 
-## M4 inspection
-
-`hstack security inspect <project>` reads the validated deployment plan and, when available, the live Docker container. It reports mounts, writable mounts, ports, environment names, secret names, user, capabilities, security options, networks, privilege, Docker socket, devices, PID and IPC modes.
-
-The score is A/B/C/D/Critical. Docker socket exposure, privileged mode, host networking or a host-root mount always produce Critical.
+`hstack security inspect` reports configured optimizer hooks, proxy endpoints and the prompt/content logging posture.

@@ -14,12 +14,7 @@
 
 ## Done — M3 Sessions
 
-- US-030 Pin Herdr and keep tmux in the workspace toolchain.
-- US-031 Create one deterministic Herdr session/workspace per HermesStack project.
-- US-032 Install Herdr's official Claude, Codex, Hermes and OpenCode integrations.
-- US-033 Launch named agents through Herdr panes without shell interpolation.
-- US-034 Persist Herdr state in the project HOME and restore layout across workspace recreation.
-- US-035 Keep direct M2 agent launch and `hstack tmux` as explicit fallbacks.
+- US-030..035 Herdr sessions, official agent integrations, persistence and tmux fallback.
 
 ## Done — M4 Network & Security
 
@@ -28,11 +23,21 @@
 - US-042 Inspect declared/live workspace security and produce A/B/C/D/Critical score.
 - US-043 Diagnose host/project network, certificates, agents, sessions and security.
 
-## Ready next — M5 Token Efficiency
+## Done — M5 Token Efficiency
 
-- EPIC-014: token optimizer abstraction, RTK integration, policies, metrics and doctor support.
+- US-1401 Register token optimizers behind a common abstraction.
+- US-1402 Enable RTK for Claude Code.
+- US-1403 Enable RTK for Codex, Hermes and OpenCode.
+- US-1404 Prevent unsafe optimizer stacking.
+- US-1405 Display evidence-qualified token gains per project.
+- US-1406 Diagnose token optimizer health and privacy posture.
+
+## Ready next — M6 Shared Context
+
+- EPIC-015: OpenViking first, project-scoped memory, explicit shared namespaces, secret filtering and context observability.
 
 ## Later
 
-- OpenViking shared context — M6.
+- Operations — M7.
+- Aspire Experience — M8.
 - Optional sandbox-provider spikes remain deferred until the native backend is stable.

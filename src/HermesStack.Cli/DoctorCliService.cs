@@ -6,6 +6,7 @@ using HermesStack.Application.Network;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
+using HermesStack.Application.Tokens;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Security;
 using HermesStack.Infrastructure.Certificates;
@@ -22,7 +23,8 @@ internal sealed class DoctorCliService(
     CertificateBundleService certificates,
     DockerWorkspaceSecurityInspector securityInspector,
     SecurityInspectionService securityEvaluator,
-    ISecretPolicyStore secretPolicies)
+    ISecretPolicyStore secretPolicies,
+    TokenOptimizationService tokenOptimization)
 {
     public async Task<int> RunAsync(string[] args)
     {
@@ -30,7 +32,8 @@ internal sealed class DoctorCliService(
         var networkOnly = args.Contains("--network", StringComparer.Ordinal);
         var certificatesOnly = args.Contains("--certificates", StringComparer.Ordinal);
         var securityOnly = args.Contains("--security", StringComparer.Ordinal);
-        var targeted = networkOnly || certificatesOnly || securityOnly;
+        var tokensOnly = args.Contains("--tokens", StringComparer.Ordinal);
+        var targeted = networkOnly || certificatesOnly || securityOnly || tokensOnly;
         var checks = new List<DoctorCheck>();
 
         if (!targeted)
@@ -93,6 +96,33 @@ internal sealed class DoctorCliService(
                     foreach (var project in projectList)
                     {
                         await AddSecurityChecksAsync(project.Id, checks);
+                    }
+                }
+            }
+        }
+
+        if (!targeted || tokensOnly)
+        {
+            if (projectId is not null)
+            {
+                await AddTokenChecksAsync(projectId, checks);
+            }
+            else if (tokensOnly)
+            {
+                var projectList = await projects.ListAsync();
+                if (projectList.Count == 0)
+                {
+                    checks.Add(new DoctorCheck(
+                        "TOKENS",
+                        "Projects",
+                        DoctorStatus.Warn,
+                        "No projects registered."));
+                }
+                else
+                {
+                    foreach (var project in projectList)
+                    {
+                        await AddTokenChecksAsync(project.Id, checks);
                     }
                 }
             }
@@ -290,6 +320,55 @@ internal sealed class DoctorCliService(
         {
             checks.Add(new DoctorCheck(
                 "SECURITY",
+                projectId,
+                DoctorStatus.Fail,
+                exception.Message));
+        }
+    }
+
+    private async Task AddTokenChecksAsync(
+        string projectId,
+        List<DoctorCheck> checks)
+    {
+        try
+        {
+            var project = await projects.GetRequiredAsync(projectId);
+            var plan = await plans.BuildAsync(project);
+            var configuration = await tokenOptimization.GetAsync(project.Id);
+            checks.Add(new DoctorCheck(
+                "TOKENS",
+                $"{project.Id} policy",
+                DoctorStatus.Pass,
+                configuration.Enabled
+                    ? $"{configuration.Profile.ToString().ToLowerInvariant()}: " +
+                      string.Join(",", configuration.EffectiveProviders.Select(static value => value.ProviderId))
+                    : "disabled"));
+
+            var status = await orchestrator.GetStatusAsync(plan);
+            if (status.State != WorkspaceState.Running)
+            {
+                checks.Add(new DoctorCheck(
+                    "TOKENS",
+                    $"{project.Id} runtime",
+                    DoctorStatus.Warn,
+                    "Workspace is not running; runtime optimizer health was not probed."));
+                return;
+            }
+
+            var health = await tokenOptimization.DoctorAsync(plan);
+            foreach (var item in health)
+            {
+                checks.Add(new DoctorCheck(
+                    "TOKENS",
+                    item.DisplayName,
+                    item.Available ? DoctorStatus.Pass : DoctorStatus.Fail,
+                    $"{item.Version}: {item.Details}"));
+            }
+        }
+        catch (Exception exception)
+        {
+            checks.Add(new DoctorCheck(
+                "TOKENS",
                 projectId,
                 DoctorStatus.Fail,
                 exception.Message));

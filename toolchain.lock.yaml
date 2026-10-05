@@ -1,6 +1,6 @@
 schemaVersion: 1
 workspace:
-  version: "0.4.0"
+  version: "0.5.0"
 runtime:
   node:
     version: "24.21.0"
@@ -33,8 +33,16 @@ tools:
     releaseTag: "v1.18.34"
     source: "npm:opencode-ai"
   rtk:
-    version: "deferred-to-M5"
-    source: "rtk-ai/rtk"
+    version: "0.51.0"
+    releaseTag: "v0.51.0"
+    sha256X64: "5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5"
+    sha256Arm64: "8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632"
+    source: "rtk-ai/rtk official release artifact"
+  caveman:
+    version: "2.7.0"
+    releaseTag: "v2.7.0"
+    commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
+    source: "JuliusBrussee/caveman signed release source"
   openViking:
     version: "deferred-to-M6"
     source: "volcengine/OpenViking"

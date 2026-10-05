@@ -2,33 +2,35 @@
 
 HermesStack is a local secure control plane for AI-agent development workspaces.
 
-**M4 Network & Security is complete.** HermesStack now combines the existing isolated agent/session runtime with validated corporate proxy/CA support, protected project secrets, live security inspection and actionable doctor diagnostics.
+**M5 Token Efficiency is complete.** HermesStack now layers token optimizers onto the isolated M1-M4 runtime without taking ownership of their filtering algorithms.
 
 ```text
 hstack init
 hstack project add mascara C:\\Dev\\Mascara
 
-hstack proxy set --https http://proxy.corp:8080 --no-proxy corp.internal
-set OPENAI_API_KEY=...
-hstack secret set OPENAI_API_KEY --project mascara --agents codex --from-env OPENAI_API_KEY
-
-hstack up mascara
-hstack security inspect mascara
-hstack doctor mascara
+hstack token providers
+hstack token enable mascara --provider rtk --profile balanced --agents claude,codex
+hstack token status mascara
+hstack token gain mascara
+hstack token doctor mascara
 ```
 
-Secrets are never written into `hstack.yaml`, `projects.yaml` or Compose. Policy metadata records only the project, secret name and allowed agents. Direct agent launches receive authorized values only for the lifetime of that exec process.
+RTK v0.51.0 is the default optimizer. Caveman v2.7.0 is available only as an explicit aggressive/custom option. RTK + Caveman is classified PotentiallyLossy and requires `--allow-lossy-stack`.
 
-Herdr 0.9.3 continues to own persistent project sessions for Claude Code, Codex, Hermes Agent and OpenCode, with tmux as a fallback.
+## Token metric semantics
+
+RTK gain represents shell-output reduction converted to estimated context tokens. HermesStack labels it **Estimated** and does not call it LLM bill savings.
+
+RTK's upstream command-history database is redirected to workspace `/tmp`, raw-output recall is disabled, and telemetry is disabled. HermesStack persists only sanitized aggregate gain records.
 
 ## Project-scoped state
 
-Authentication, agent state and Herdr session state remain isolated per project under `~/.hstack/data/projects/<project>/`. HermesStack never implicitly mounts the host user's agent, SSH, Docker or cloud credentials into the workspace.
+Authentication, agent state, Herdr session state and token optimizer configuration remain isolated per project under `~/.hstack`. HermesStack never implicitly mounts host SSH, Docker or cloud credentials into a workspace.
 
-Corporate CA trust is additive; HermesStack does not disable TLS verification. Proxy endpoints containing inline credentials are rejected.
+Corporate CA trust remains additive; TLS verification is not disabled. Secrets remain outside YAML/Compose values and are injected only into explicitly authorized agent exec processes.
 
-See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M4-REPORT.md`.
+See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M5-REPORT.md`.
 
 ## Development workflow
 
-Every pull request runs Linux and Windows validation. Linux also executes the M3 regression gate and the current M4 Docker end-to-end gate. A successful push to `main` repeats validation and then publishes `win-x64`, `linux-x64` and `linux-arm64` artifacts with SHA-256 manifests.
+Every pull request runs Windows validation and the Linux M3/M4/M5 gates. A successful push to `main` repeats validation and then publishes `win-x64`, `linux-x64` and `linux-arm64` artifacts with SHA-256 manifests.

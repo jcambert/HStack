@@ -5,7 +5,7 @@ namespace HermesStack.UnitTests.Configuration;
 public sealed class ToolchainLockServiceTests
 {
     [Fact]
-    public void Exact_m3_versions_are_loaded()
+    public void Exact_m5_versions_are_loaded()
     {
         var root = Path.Combine(Path.GetTempPath(), "hstack-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -16,7 +16,7 @@ public sealed class ToolchainLockServiceTests
             File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.3.0"
+                  version: "0.5.0"
                 tools:
                   herdr:
                     version: "0.9.3"
@@ -33,11 +33,20 @@ public sealed class ToolchainLockServiceTests
                     commit: "f97608f178d1ffeca59860195ab7da295f7c8e5f"
                   openCode:
                     version: "1.18.34"
+                  rtk:
+                    version: "0.51.0"
+                    releaseTag: "v0.51.0"
+                    sha256X64: "5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5"
+                    sha256Arm64: "8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632"
+                  caveman:
+                    version: "2.7.0"
+                    releaseTag: "v2.7.0"
+                    commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
                 """);
 
             var value = new ToolchainLockService().Load(path);
 
-            Assert.Equal("0.3.0", value.WorkspaceVersion);
+            Assert.Equal("0.5.0", value.WorkspaceVersion);
             Assert.Equal("0.9.3", value.HerdrVersion);
             Assert.Equal("v0.9.3", value.HerdrReleaseTag);
             Assert.Equal("18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7", value.HerdrSha256X64);
@@ -48,6 +57,13 @@ public sealed class ToolchainLockServiceTests
             Assert.Equal("v2026.9.24", value.HermesReleaseTag);
             Assert.Equal("f97608f178d1ffeca59860195ab7da295f7c8e5f", value.HermesCommit);
             Assert.Equal("1.18.34", value.OpenCodeVersion);
+            Assert.Equal("0.51.0", value.RtkVersion);
+            Assert.Equal("v0.51.0", value.RtkReleaseTag);
+            Assert.Equal("5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5", value.RtkSha256X64);
+            Assert.Equal("8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632", value.RtkSha256Arm64);
+            Assert.Equal("2.7.0", value.CavemanVersion);
+            Assert.Equal("v2.7.0", value.CavemanReleaseTag);
+            Assert.Equal("8b0c1d3699b8d83e87fe4605b378da20c41555e0", value.CavemanCommit);
         }
         finally
         {
@@ -67,7 +83,7 @@ public sealed class ToolchainLockServiceTests
             File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.3.0"
+                  version: "0.5.0"
                 tools:
                   herdr:
                     version: "deferred-to-M3"
@@ -84,6 +100,15 @@ public sealed class ToolchainLockServiceTests
                     commit: "f97608f178d1ffeca59860195ab7da295f7c8e5f"
                   openCode:
                     version: "1.18.34"
+                  rtk:
+                    version: "0.51.0"
+                    releaseTag: "v0.51.0"
+                    sha256X64: "5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5"
+                    sha256Arm64: "8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632"
+                  caveman:
+                    version: "2.7.0"
+                    releaseTag: "v2.7.0"
+                    commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
                 """);
 
             Assert.Throws<InvalidDataException>(() => new ToolchainLockService().Load(path));

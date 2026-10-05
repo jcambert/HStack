@@ -1,10 +1,10 @@
-ARG HSTACK_WORKSPACE_VERSION=0.4.0
+ARG HSTACK_WORKSPACE_VERSION=0.5.0
 FROM ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie@sha256:b3c543b6c4f23a5f2df22866bd7857e5d304b67a564f4feab6ac22044dde719b AS uv_source
 FROM hstack/workspace-base:${HSTACK_WORKSPACE_VERSION}
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
-ARG HSTACK_VERSION=0.4.0
+ARG HSTACK_VERSION=0.5.0
 ARG HSTACK_REVISION=unknown
 ARG HSTACK_CREATED=unknown
 ARG HSTACK_TOOLCHAIN_SHA256=development
@@ -17,6 +17,13 @@ ARG OPENCODE_VERSION=1.18.34
 ARG HERDR_VERSION=0.9.3
 ARG HERDR_SHA256_X64=18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7
 ARG HERDR_SHA256_ARM64=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0
+ARG RTK_VERSION=0.51.0
+ARG RTK_RELEASE_TAG=v0.51.0
+ARG RTK_SHA256_X64=5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5
+ARG RTK_SHA256_ARM64=8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632
+ARG CAVEMAN_VERSION=2.7.0
+ARG CAVEMAN_RELEASE_TAG=v2.7.0
+ARG CAVEMAN_COMMIT=8b0c1d3699b8d83e87fe4605b378da20c41555e0
 ARG TARGETARCH=amd64
 
 LABEL org.opencontainers.image.title="HermesStack workspace full" \
@@ -29,7 +36,9 @@ LABEL org.opencontainers.image.title="HermesStack workspace full" \
       io.hstack.agent.codex="${CODEX_VERSION}" \
       io.hstack.agent.hermes="${HERMES_VERSION}" \
       io.hstack.agent.opencode="${OPENCODE_VERSION}" \
-      io.hstack.session.herdr="${HERDR_VERSION}"
+      io.hstack.session.herdr="${HERDR_VERSION}" \
+      io.hstack.token.rtk="${RTK_VERSION}" \
+      io.hstack.token.caveman="${CAVEMAN_VERSION}"
 
 USER root
 
@@ -74,6 +83,36 @@ RUN set -eux; \
     install -m 0755 /tmp/herdr /usr/local/bin/herdr; \
     rm -f /tmp/herdr; \
     herdr --version | grep -F "${HERDR_VERSION}"
+
+# RTK: install the exact official release archive and verify the release digest.
+# x86_64 uses the upstream musl build; arm64 uses the published glibc build.
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+      amd64) rtk_asset="rtk-x86_64-unknown-linux-musl.tar.gz"; rtk_sha="${RTK_SHA256_X64}" ;; \
+      arm64) rtk_asset="rtk-aarch64-unknown-linux-gnu.tar.gz"; rtk_sha="${RTK_SHA256_ARM64}" ;; \
+      *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
+      "https://github.com/rtk-ai/rtk/releases/download/${RTK_RELEASE_TAG}/${rtk_asset}" \
+      -o /tmp/rtk.tar.gz; \
+    echo "${rtk_sha}  /tmp/rtk.tar.gz" | sha256sum -c -; \
+    mkdir -p /tmp/rtk-extract; \
+    tar -xzf /tmp/rtk.tar.gz -C /tmp/rtk-extract; \
+    rtk_binary="$(find /tmp/rtk-extract -type f -name rtk -print -quit)"; \
+    test -n "$rtk_binary"; \
+    install -m 0755 "$rtk_binary" /usr/local/bin/rtk; \
+    rm -rf /tmp/rtk.tar.gz /tmp/rtk-extract; \
+    rtk --version | grep -F "${RTK_VERSION}"
+
+# Caveman: keep the signed release source pinned in the image. HermesStack invokes
+# its upstream installer only when a user explicitly enables this provider.
+RUN set -eux; \
+    git clone --filter=blob:none --no-checkout \
+      https://github.com/JuliusBrussee/caveman.git /opt/caveman; \
+    git -C /opt/caveman fetch --depth 1 origin "${CAVEMAN_COMMIT}"; \
+    git -C /opt/caveman checkout --detach "${CAVEMAN_COMMIT}"; \
+    test "$(git -C /opt/caveman rev-parse HEAD)" = "${CAVEMAN_COMMIT}"; \
+    test "$(node -p "require('/opt/caveman/package.json').version")" = "${CAVEMAN_VERSION}"
 
 # Codex and OpenCode both document npm as a supported package-manager install.
 # Exact versions keep the image reproducible and select their platform packages.

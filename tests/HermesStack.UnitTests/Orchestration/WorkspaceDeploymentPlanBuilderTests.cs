@@ -66,6 +66,9 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             Assert.Equal("/home/hstack/.hermes", plan.Environment["HERMES_HOME"]);
             Assert.Equal("local", plan.Environment["TERMINAL_ENV"]);
             Assert.Equal("1", plan.Environment["OPENCODE_DISABLE_AUTOUPDATE"]);
+            Assert.Equal("/tmp/hstack-rtk-tracking.db", plan.Environment["RTK_DB_PATH"]);
+            Assert.Equal("1", plan.Environment["RTK_TELEMETRY_DISABLED"]);
+            Assert.Equal("0", plan.Environment["RTK_RECALL"]);
             Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".config")));
             Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".local", "share")));
             Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".local", "state")));
