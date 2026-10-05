@@ -65,7 +65,7 @@ docker exec "$container" sh -c 'find "$HOME/.config/opencode" -iname "*rtk*" -pr
 
 # Generate real RTK aggregate data. This DB is intentionally ephemeral.
 docker exec "$container" rtk ls /usr/bin >/dev/null
-test -s "$(docker exec "$container" printenv RTK_DB_PATH)"
+docker exec "$container" test -s /tmp/hstack-rtk-tracking.db
 
 gain="$(run_hstack token gain project-a)"
 grep -F "Estimated" <<<"$gain" >/dev/null
