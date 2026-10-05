@@ -57,11 +57,20 @@ test "$(docker exec "$container" printenv RTK_TELEMETRY_DISABLED)" = "1"
 test "$(docker exec "$container" printenv RTK_RECALL)" = "0"
 docker exec "$container" rtk config recall | grep -Fi "disabled"
 
-# Verify each selected agent received an RTK integration artifact.
-docker exec "$container" sh -c 'find "$CLAUDE_CONFIG_DIR" -iname "*rtk*" -print | grep -q .'
-docker exec "$container" sh -c 'find "$CODEX_HOME" -iname "*rtk*" -print | grep -q .'
-docker exec "$container" sh -c 'find "$HERMES_HOME" -iname "*rtk*" -print | grep -q .'
-docker exec "$container" sh -c 'find "$HOME/.config/opencode" -iname "*rtk*" -print | grep -q .'
+# Verify the exact upstream integration artifacts instead of guessing by
+# filename. These paths are RTK v0.51.0's documented global install targets.
+assert_in_container() {
+  local path="$1"
+  if ! docker exec "$container" test -e "$path"; then
+    echo "Expected RTK integration artifact is missing: $path" >&2
+    docker exec "$container" sh -c 'find "$HOME" -maxdepth 5 -type f | sort' >&2
+    exit 1
+  fi
+}
+assert_in_container /home/hstack/.claude/RTK.md
+assert_in_container /home/hstack/.codex/hooks.json
+assert_in_container /home/hstack/.hermes/plugins/rtk-rewrite/plugin.yaml
+assert_in_container /home/hstack/.config/opencode/plugins/rtk.ts
 
 # Generate real RTK aggregate data. This DB is intentionally ephemeral.
 docker exec "$container" rtk ls /usr/bin >/dev/null
