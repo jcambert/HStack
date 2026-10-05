@@ -44,7 +44,7 @@ public sealed class CavemanTokenOptimizer(
                     "--non-interactive"
                 ],
                 Interactive: false,
-                Environment: Environment()),
+                Environment: InstallerEnvironment()),
             cancellationToken);
         if (!result.IsSuccess)
         {
@@ -63,7 +63,7 @@ public sealed class CavemanTokenOptimizer(
                 plan,
                 ["node", Installer, "--uninstall", "--non-interactive"],
                 Interactive: false,
-                Environment: Environment()),
+                Environment: InstallerEnvironment()),
             cancellationToken);
         if (!result.IsSuccess)
         {
@@ -111,7 +111,7 @@ public sealed class CavemanTokenOptimizer(
             null,
             "HermesStack integrates the pinned Caveman agent skill/plugin path, not its proxy accounting runtime; no comparable measured gain is exposed."));
 
-    private IReadOnlyDictionary<string, string> Environment() =>
+    private IReadOnlyDictionary<string, string> InstallerEnvironment() =>
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["CAVEMAN_REF"] = releaseTag
