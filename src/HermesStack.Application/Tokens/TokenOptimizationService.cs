@@ -26,6 +26,13 @@ public sealed class TokenOptimizationService(
                 nameof(profile));
         }
 
+        if (string.Equals(providerId, "caveman", StringComparison.OrdinalIgnoreCase) &&
+            profile is not (TokenOptimizationProfile.Aggressive or TokenOptimizationProfile.Custom))
+        {
+            throw new InvalidOperationException(
+                "HS5003: Caveman performs semantic response compression and is restricted to explicit aggressive/custom profiles.");
+        }
+
         var provider = registry.GetRequired(providerId);
         var normalizedAgents = agents
             .Select(static value => value.Trim().ToLowerInvariant())
