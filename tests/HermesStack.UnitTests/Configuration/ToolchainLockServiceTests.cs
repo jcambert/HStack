@@ -5,7 +5,7 @@ namespace HermesStack.UnitTests.Configuration;
 public sealed class ToolchainLockServiceTests
 {
     [Fact]
-    public void Exact_m3_versions_are_loaded()
+    public void Exact_m5_versions_are_loaded()
     {
         var root = Path.Combine(Path.GetTempPath(), "hstack-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
