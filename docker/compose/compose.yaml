@@ -5,7 +5,6 @@ services:
     working_dir: /workspace
     stdin_open: true
     tty: true
-    user: "${HSTACK_UID:-1000}:${HSTACK_GID:-1000}"
     security_opt:
       - no-new-privileges:true
     cap_drop:

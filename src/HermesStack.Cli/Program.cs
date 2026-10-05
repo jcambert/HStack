@@ -97,11 +97,35 @@ internal static class HStackCli
         var workspaceDir = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "workspace");
         var toolchainLock = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
         var toolchainHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(toolchainLock))).ToLowerInvariant();
-        var commonBuildArgs = new[]
+        var revision = Environment.GetEnvironmentVariable("HSTACK_REVISION")
+            ?? Environment.GetEnvironmentVariable("GITHUB_SHA")
+            ?? "local";
+        var commonBuildArgs = new List<string>
         {
             "--build-arg", $"HSTACK_CREATED={DateTimeOffset.UtcNow:O}",
+            "--build-arg", $"HSTACK_REVISION={revision}",
             "--build-arg", $"HSTACK_TOOLCHAIN_SHA256={toolchainHash}"
         };
+
+        if (OperatingSystem.IsLinux())
+        {
+            var uid = await processRunner.RunAsync(new("id", ["-u"]));
+            var gid = await processRunner.RunAsync(new("id", ["-g"]));
+            if (!uid.IsSuccess || !gid.IsSuccess ||
+                !int.TryParse(uid.StandardOutput.Trim(), out var uidValue) ||
+                !int.TryParse(gid.StandardOutput.Trim(), out var gidValue) ||
+                uidValue <= 0 || gidValue <= 0)
+            {
+                throw new InvalidOperationException("Unable to determine the non-root Linux UID/GID for the workspace image.");
+            }
+
+            commonBuildArgs.AddRange(new[]
+            {
+                "--build-arg", $"HSTACK_UID={uidValue}",
+                "--build-arg", $"HSTACK_GID={gidValue}"
+            });
+        }
+
         await BuildImageAsync(processRunner, workspaceDir, "Dockerfile.base", "hstack/workspace-base:0.1.0", commonBuildArgs);
         await BuildImageAsync(processRunner, workspaceDir, "Dockerfile.full", "hstack/workspace-full:0.1.0",
             [.. commonBuildArgs, "--build-arg", "HSTACK_WORKSPACE_VERSION=0.1.0"]);

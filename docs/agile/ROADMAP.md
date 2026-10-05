@@ -1,7 +1,7 @@
 # Roadmap V5
 
-- **M1 Secure Foundation — In Progress**: EPIC-001, EPIC-002, EPIC-003; core EPIC-021/022; native part EPIC-023.
-- **M2 Agent Runtime — Proposed**: EPIC-004..008.
+- **M1 Secure Foundation — Done**: EPIC-001, EPIC-002, EPIC-003; early orchestration/integration abstractions; native Docker workspace foundation.
+- **M2 Agent Runtime — Ready**: EPIC-004..008.
 - **M3 Sessions — Proposed**: EPIC-009 / Herdr.
 - **M4 Network & Security — Proposed**: EPIC-010..013.
 - **M5 Token Efficiency — Proposed**: EPIC-014 / RTK first.

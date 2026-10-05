@@ -2,20 +2,42 @@ name: ci
 
 on:
   workflow_dispatch:
+    inputs:
+      windows_validation:
+        description: 'Also run the Windows compile/unit-test job'
+        required: false
+        default: false
+        type: boolean
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  linux-m1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore
+        run: dotnet restore HermesStack.slnx
+      - name: Build
+        run: dotnet build HermesStack.slnx --no-restore -c Release
+      - name: Unit tests
+        run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
+      - name: Integration tests
+        run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release
+      - name: M1 end-to-end Docker security smoke test
+        run: bash tests/e2e/m1-smoke.sh
+
+  windows-compile:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.windows_validation }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v5
@@ -24,5 +46,3 @@ jobs:
       - run: dotnet restore HermesStack.slnx
       - run: dotnet build HermesStack.slnx --no-restore -c Release
       - run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
-      - if: runner.os == 'Linux'
-        run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release --filter Category=Docker
