@@ -25,7 +25,7 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
             return ClassifyWindows(trimmed);
         }
 
-        if (!trimmed.StartsWith('/', StringComparison.Ordinal))
+        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
         {
             return Forbidden(trimmed, "HS1002", "Host mount paths must be absolute.");
         }
@@ -99,7 +99,7 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
 
         var currentHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrEmpty(currentHome) &&
-            currentHome.StartsWith('/', StringComparison.Ordinal) &&
+            currentHome.StartsWith("/", StringComparison.Ordinal) &&
             string.Equals(normalized, NormalizeUnix(currentHome), StringComparison.Ordinal))
         {
             return Forbidden(normalized, "HS3003", "Mounting the host HOME directory is forbidden.");
