@@ -13,7 +13,7 @@ tools:
     version: "0.21.5"
     releaseTag: "v2026.9.24"
     commit: "f97608f178d1ffeca59860195ab7da295f7c8e5f"
-    source: "NousResearch/hermes-agent release-tag installer"
+    source: "NousResearch/hermes-agent release source + pinned uv.lock"
   herdr:
     version: "deferred-to-M3"
     source: "official"

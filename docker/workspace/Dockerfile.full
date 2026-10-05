@@ -1,5 +1,8 @@
 ARG HSTACK_WORKSPACE_VERSION=0.2.0
+FROM ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie@sha256:b3c543b6c4f23a5f2df22866bd7857e5d304b67a564f4feab6ac22044dde719b AS uv_source
 FROM hstack/workspace-base:${HSTACK_WORKSPACE_VERSION}
+
+COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
 ARG HSTACK_VERSION=0.2.0
 ARG HSTACK_REVISION=unknown
@@ -28,7 +31,8 @@ USER root
 
 # Hermes currently builds native Node modules during its official install.
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends build-essential \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       build-essential cmake python3-dev libffi-dev libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Claude Code: install the exact official native release artifact used by the
@@ -61,26 +65,23 @@ RUN set -eux; \
     opencode --version | grep -F "${OPENCODE_VERSION}"; \
     npm cache clean --force
 
-# Hermes Agent: execute the official installer and pin the exact release commit.
-# The installer requires --commit to be an ancestor of a branch, so use main;
-# HERMES_RELEASE_TAG remains recorded as provenance for that exact commit.
-# Browser/computer-use are deferred.
+# Hermes Agent: build the exact official release source using the release's
+# committed uv.lock. This follows the dependency-install path used by the
+# upstream production Dockerfile and avoids mixing a newer installer with an
+# older pinned source tree.
 RUN set -eux; \
-    export HOME=/root; \
-    export HERMES_HOME=/tmp/hstack-hermes-build; \
-    mkdir -p "$HERMES_HOME"; \
-    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
-      "https://hermes-agent.nousresearch.com/install.sh" \
-      -o /tmp/hermes-install.sh; \
-    bash /tmp/hermes-install.sh \
-      --branch "main" \
-      --commit "${HERMES_COMMIT}" \
-      --skip-setup \
-      --skip-browser \
-      --skip-computer-use \
-      --non-interactive; \
-    HERMES_HOME="$HERMES_HOME" hermes --version | grep -F "${HERMES_VERSION}"; \
-    rm -rf "$HERMES_HOME" /tmp/hermes-install.sh
+    export UV_NO_CONFIG=1; \
+    git clone --filter=blob:none --no-checkout \
+      https://github.com/NousResearch/hermes-agent.git /opt/hermes; \
+    git -C /opt/hermes fetch --depth 1 origin "${HERMES_COMMIT}"; \
+    git -C /opt/hermes checkout --detach "${HERMES_COMMIT}"; \
+    test "$(git -C /opt/hermes rev-parse HEAD)" = "${HERMES_COMMIT}"; \
+    cd /opt/hermes; \
+    uv sync --frozen --no-install-project; \
+    uv pip install --no-cache-dir --no-deps -e "."; \
+    ln -s /opt/hermes/.venv/bin/hermes /usr/local/bin/hermes; \
+    HERMES_HOME=/tmp/hstack-hermes-build hermes --version | grep -F "${HERMES_VERSION}"; \
+    rm -rf /tmp/hstack-hermes-build
 
 RUN apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* /tmp/*
