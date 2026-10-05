@@ -99,7 +99,9 @@ internal static class HStackCli
                 planBuilder,
                 dockerSecurityInspector,
                 securityEvaluator,
-                secretPolicies);
+                secretPolicies,
+                tokenStore,
+                configStore);
             var doctorCli = new HermesStack.Cli.DoctorCliService(
                 projectService,
                 planBuilder,
@@ -109,7 +111,8 @@ internal static class HStackCli
                 certificateService,
                 dockerSecurityInspector,
                 securityEvaluator,
-                secretPolicies);
+                secretPolicies,
+                tokenService);
 
             if (args.Length == 0)
             {
