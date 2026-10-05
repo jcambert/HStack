@@ -9,10 +9,18 @@ public sealed class RtkGainParserTests
     public void Gain_is_marked_estimated_and_never_as_cost_savings()
     {
         var metrics = RtkGainParser.Parse("""
-            Total commands : 12
-            Input Tokens   : 45,230
-            Output Tokens  : 4,890
-            Saved Tokens   : 40,340  (89.2%)
+            {
+              "summary": {
+                "total_commands": 12,
+                "total_input": 45230,
+                "total_output": 4890,
+                "total_saved": 40340,
+                "avg_savings_pct": 89.2
+              },
+              "daily": [],
+              "weekly": [],
+              "monthly": []
+            }
             """);
 
         Assert.Equal(TokenMetricEvidence.Estimated, metrics.Evidence);
