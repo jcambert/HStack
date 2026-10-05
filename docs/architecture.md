@@ -1,12 +1,13 @@
 # HermesStack architecture
 
-HermesStack is a local secure control plane. It owns orchestration, policy, lifecycle and diagnostics; specialized upstream tools retain ownership of agent behavior, authentication, session protocols, context and token filtering.
+HermesStack is a local secure control plane. It owns orchestration, policy, lifecycle and diagnostics; specialized upstream tools retain ownership of agent behavior, authentication, sessions, token filtering and context.
 
 ```mermaid
 flowchart TD
   Host[Host] --> H[hstack control plane]
   H --> Config[Proxy + CA policy]
   H --> Secrets[Protected secret store]
+  H --> Tokens[ITokenOptimizer registry]
   H --> Plan[WorkspaceDeploymentPlan]
   H --> Registry[IAgentHarnessRegistry]
   H --> Sessions[HerdrSessionService]
@@ -14,33 +15,31 @@ flowchart TD
   Plan --> Orch[IWorkspaceOrchestrator]
   Registry --> Orch
   Sessions --> Orch
+  Tokens --> RTK[RTK]
+  Tokens --> Cave[Caveman opt-in]
   Orch --> Compose[Docker Compose]
   Compose --> Workspace[Project workspace container]
   Secrets -. authorized exec only .-> Registry
-  Workspace --> Herdr[Herdr named project session]
-  Herdr --> Claude[Claude Code pane]
-  Herdr --> Codex[Codex pane]
-  Herdr --> Hermes[Hermes Agent pane]
-  Herdr --> OpenCode[OpenCode pane]
-  Workspace --> Tmux[tmux fallback]
-  Workspace -. M5 .-> RTK[RTK]
+  Workspace --> Herdr[Herdr]
   Workspace -. M6 .-> OV[OpenViking]
 ```
 
 ## Deployment source of truth
 
-Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that validated plan. M4 adds normalized proxy variables to the plan but deliberately keeps secret values out of it.
+Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that plan. Secret values stay out of the plan.
 
-## Agent boundary
+## Token optimization boundary
 
-Each direct agent integration remains an `IAgentHarness`. Direct `hstack claude|codex|hermes|opencode` remains the fallback path alongside Herdr-managed sessions.
+`ITokenOptimizer` owns lifecycle integration, not compression algorithms. M5 provides a static registry, project policy store, compatibility policy, health checks and evidence-qualified metrics.
 
-M4's `SecretInjectionService` resolves values only for the selected project and agent. The Docker orchestrator passes only secret names as `docker compose exec -e NAME` arguments while the actual values live in the Docker CLI process environment. This avoids both Compose persistence and command-line value exposure.
+RTK owns shell command rewriting/filtering. Caveman owns its agent-native semantic compression. HermesStack invokes their official integration paths and can remove/disable them.
 
-## Session boundary
+The default balanced profile uses RTK only. Caveman is never automatically stacked. A PotentiallyLossy combination requires explicit user consent.
 
-Each project receives the Herdr session name `hstack-<project-id>` and logical workspace label `hstack:<project-id>`. Herdr state lives under that project's mounted HOME. tmux remains a fallback and HermesStack does not nest Herdr inside tmux.
+## Metrics boundary
 
-## Inspection boundary
+RTK's raw tracking database is redirected to the workspace tmpfs and recall is disabled. HermesStack stores only sanitized aggregate metric records. RTK's bytes-to-token conversion is labeled Estimated.
 
-`WorkspaceDeploymentPlan` remains the declared policy authority. `DockerWorkspaceSecurityInspector` reads effective container state when available. `SecurityInspectionService` applies deterministic scoring, and `doctor` combines host, network, certificate, agent/session and security diagnostics.
+## Session and agent boundary
+
+Agent homes and Herdr state remain project-scoped. RTK and Caveman integrations are written into those same isolated homes, so enabling optimization for one project does not modify another project's agent state.
