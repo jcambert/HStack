@@ -2,45 +2,37 @@
 
 HermesStack is a local secure control plane for AI-agent development workspaces.
 
-**M2 Agent Runtime is complete.** Claude Code, Codex, Hermes Agent and OpenCode are pinned in the workspace image and launched only inside the selected project's Docker workspace.
+**M3 Sessions is complete.** Herdr 0.9.3 is pinned inside the managed workspace and owns persistent project sessions for Claude Code, Codex, Hermes Agent and OpenCode. tmux remains available as a simple fallback multiplexer.
 
 ```text
 hstack init
 hstack project add mascara C:\\Dev\\Mascara
-hstack up mascara
 
-hstack agent list --project mascara
+hstack session init mascara
+hstack session status mascara
+hstack session run codex mascara --name reviewer -- -m gpt-5.4
+hstack herdr mascara
+```
+
+Detach from Herdr and return later: its server and agent panes keep running while the workspace container is alive. After a container recreation, Herdr restores the saved project layout and current official agent integrations provide native conversation restore when the upstream agent has reported a resumable session id.
+
+Direct M2 launch remains available as an explicit fallback:
+
+```text
 hstack claude mascara
 hstack codex mascara
 hstack hermes mascara
 hstack opencode mascara
-
-hstack auth claude --project mascara
-hstack auth codex --project mascara
-hstack auth hermes --project mascara
-hstack auth opencode --project mascara
+hstack tmux mascara
 ```
-
-The ergonomic agent commands are aliases of the same harness/registry path used by `hstack agent run`; they do not duplicate launch policy.
 
 ## Project-scoped state
 
-Agent authentication and state are isolated per project:
+Authentication, agent state and Herdr session state remain isolated per project under `~/.hstack/data/projects/<project>/`. HermesStack never implicitly mounts the host user's agent, SSH, Docker or cloud credentials into the workspace.
 
-```text
-~/.hstack/data/projects/<project>/
-├── home/
-├── claude/          -> /home/hstack/.claude
-├── codex/           -> /home/hstack/.codex
-├── hermes/          -> /home/hstack/.hermes
-└── opencode/
-    ├── config/      -> /home/hstack/.config/opencode
-    └── data/        -> /home/hstack/.local/share/opencode
-```
+Herdr uses the project HOME (`/home/hstack`) and the deterministic session name `hstack-<project>`. Its official Claude, Codex, Hermes and OpenCode integrations are installed into those same project-scoped agent homes.
 
-HermesStack never automatically mounts the host user's Claude, Codex, Hermes, OpenCode, SSH or Docker credentials into a managed workspace.
-
-See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M2-REPORT.md`.
+See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M3-REPORT.md`.
 
 ## Development workflow
 

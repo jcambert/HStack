@@ -32,7 +32,8 @@ public sealed record WorkspaceDeploymentPreview(string Backend, string Summary);
 public sealed record WorkspaceExecutionRequest(
     WorkspaceDeploymentPlan Plan,
     IReadOnlyList<string> Command,
-    bool Interactive = true);
+    bool Interactive = true,
+    bool Detached = false);
 
 public sealed record WorkspaceExecutionResult(
     int ExitCode,

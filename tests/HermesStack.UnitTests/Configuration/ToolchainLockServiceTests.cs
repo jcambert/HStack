@@ -5,24 +5,24 @@ namespace HermesStack.UnitTests.Configuration;
 public sealed class ToolchainLockServiceTests
 {
     [Fact]
-    public void Exact_agent_versions_are_loaded()
+    public void Exact_m3_versions_are_loaded()
     {
-        var root = Path.Combine(
-            Path.GetTempPath(),
-            "hstack-tests",
-            Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "hstack-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var path = Path.Combine(root, "toolchain.lock.yaml");
 
         try
         {
-            File.WriteAllText(
-                path,
-                """
+            File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.2.0"
+                  version: "0.3.0"
                 tools:
+                  herdr:
+                    version: "0.9.3"
+                    releaseTag: "v0.9.3"
+                    sha256X64: "18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7"
+                    sha256Arm64: "4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0"
                   claudeCode:
                     version: "2.1.289"
                   codex:
@@ -37,7 +37,11 @@ public sealed class ToolchainLockServiceTests
 
             var value = new ToolchainLockService().Load(path);
 
-            Assert.Equal("0.2.0", value.WorkspaceVersion);
+            Assert.Equal("0.3.0", value.WorkspaceVersion);
+            Assert.Equal("0.9.3", value.HerdrVersion);
+            Assert.Equal("v0.9.3", value.HerdrReleaseTag);
+            Assert.Equal("18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7", value.HerdrSha256X64);
+            Assert.Equal("4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0", value.HerdrSha256Arm64);
             Assert.Equal("2.1.289", value.ClaudeCodeVersion);
             Assert.Equal("0.160.0", value.CodexVersion);
             Assert.Equal("0.21.5", value.HermesVersion);
@@ -52,24 +56,24 @@ public sealed class ToolchainLockServiceTests
     }
 
     [Fact]
-    public void Latest_and_deferred_versions_are_rejected()
+    public void Latest_deferred_and_invalid_digests_are_rejected()
     {
-        var root = Path.Combine(
-            Path.GetTempPath(),
-            "hstack-tests",
-            Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Path.GetTempPath(), "hstack-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var path = Path.Combine(root, "toolchain.lock.yaml");
 
         try
         {
-            File.WriteAllText(
-                path,
-                """
+            File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.2.0"
+                  version: "0.3.0"
                 tools:
+                  herdr:
+                    version: "deferred-to-M3"
+                    releaseTag: "v0.9.3"
+                    sha256X64: "invalid"
+                    sha256Arm64: "4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0"
                   claudeCode:
                     version: "latest"
                   codex:
@@ -82,8 +86,7 @@ public sealed class ToolchainLockServiceTests
                     version: "1.18.34"
                 """);
 
-            Assert.Throws<InvalidDataException>(
-                () => new ToolchainLockService().Load(path));
+            Assert.Throws<InvalidDataException>(() => new ToolchainLockService().Load(path));
         }
         finally
         {

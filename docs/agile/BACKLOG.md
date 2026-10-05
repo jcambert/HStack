@@ -3,34 +3,30 @@
 ## Done — M1 Secure Foundation
 
 - US-001 Add a local project securely.
-- US-002 Start an isolated workspace with Docker Compose.
-- US-003 Stop an isolated workspace.
-- US-004 Enter the workspace shell.
-- US-005 Report workspace status.
-- US-006 Initialize HermesStack idempotently.
-- US-007 Register integration descriptors without hard-coded compatibility tables.
-- US-008 Add/import Corporate CA certificates through CLI.
+- US-002 Start/stop and enter an isolated Docker workspace.
+- US-003 Report workspace status and initialize HermesStack idempotently.
+- US-004 Register integrations and Corporate CA trust without weakening TLS.
 
 ## Done — M2 Agent Runtime
 
-- US-010 Pin and install Claude Code using its current native installation path.
-- US-011 Pin and install Codex with an exact supported package-manager version.
-- US-012 Pin and install Hermes Agent from an exact stable release tag.
-- US-013 Pin and install OpenCode with an exact supported package-manager version.
-- US-014 Add `IAgentHarness`, harness registry and common agent launch path.
-- US-015 Add project-scoped authentication/state for all four agents.
-- US-016 Add ergonomic `hstack claude|codex|hermes|opencode` aliases without duplicated logic.
-- US-017 Validate M2 in real Docker with exact versions and ProjectA/ProjectB state isolation.
+- US-010..017 Pin and integrate Claude Code, Codex, Hermes Agent and OpenCode.
+- Add `IAgentHarness`, project-scoped auth/state and real Docker isolation validation.
 
-## Ready next — M3 Sessions
+## Done — M3 Sessions
 
-- Integrate Herdr as the session manager.
-- Add named/resumable sessions per agent and project.
-- Keep direct launch fallback when Herdr is unavailable.
-- Persist Herdr state per project without host credential reuse.
+- US-030 Pin Herdr and keep tmux in the workspace toolchain.
+- US-031 Create one deterministic Herdr session/workspace per HermesStack project.
+- US-032 Install Herdr's official Claude, Codex, Hermes and OpenCode integrations.
+- US-033 Launch named agents through Herdr panes without shell interpolation.
+- US-034 Persist Herdr state in the project HOME and restore layout across workspace recreation.
+- US-035 Keep direct M2 launch and `hstack tmux` as explicit fallbacks.
+
+## Ready next — M4 Network & Security
+
+- EPIC-010..013: network policy, security inspection, secrets and hardening diagnostics.
 
 ## Later
 
-- Full user-facing `hstack security inspect` command — EPIC-012 / M4.
-- SPIKE-2201 Evaluate Dagger Container Use provider — deferred until the native backend is stable.
-- SPIKE-2202 Evaluate DevPod provider — deferred until the native backend is stable.
+- RTK token optimization — M5.
+- OpenViking shared context — M6.
+- Optional sandbox-provider spikes remain deferred until the native backend is stable.

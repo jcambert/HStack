@@ -112,11 +112,25 @@ public sealed class DockerComposeWorkspaceOrchestrator(
         WorkspaceExecutionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var args = ComposeArgs(request.Plan, "exec", "workspace")
-            .Concat(request.Command)
-            .ToArray();
+        var args = new List<string>(ComposeArgs(request.Plan, "exec"));
+        if (request.Detached)
+        {
+            args.Add("-d");
+        }
+
+        if (!request.Interactive)
+        {
+            args.Add("-T");
+        }
+
+        args.Add("workspace");
+        args.AddRange(request.Command);
+
         var result = await processRunner.RunAsync(
-            new ProcessRequest("docker", args, CaptureOutput: !request.Interactive),
+            new ProcessRequest(
+                "docker",
+                args,
+                CaptureOutput: !request.Interactive || request.Detached),
             cancellationToken);
         return result.ExitCode;
     }

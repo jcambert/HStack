@@ -1,39 +1,38 @@
 # HermesStack architecture
 
-HermesStack is a local secure control plane. It owns orchestration, policy, lifecycle and diagnostics; specialized upstream tools retain ownership of agent behavior, authentication flows, sessions, context and token filtering.
+HermesStack is a local secure control plane. It owns orchestration, policy, lifecycle and diagnostics; specialized upstream tools retain ownership of agent behavior, authentication, session protocols, context and token filtering.
 
 ```mermaid
 flowchart TD
   Host[Host] --> H[hstack control plane]
   H --> Plan[WorkspaceDeploymentPlan]
   H --> Registry[IAgentHarnessRegistry]
-  Registry --> ClaudeH[ClaudeCodeHarness]
-  Registry --> CodexH[CodexHarness]
-  Registry --> HermesH[HermesAgentHarness]
-  Registry --> OpenCodeH[OpenCodeHarness]
+  H --> Sessions[HerdrSessionService]
   Plan --> Orch[IWorkspaceOrchestrator]
+  Registry --> Orch
+  Sessions --> Orch
   Orch --> Compose[Docker Compose]
-  Orch -. future .-> Aspire[Aspire]
   Compose --> Workspace[Project workspace container]
-  Workspace --> Claude[Claude Code]
-  Workspace --> Codex[Codex]
-  Workspace --> Hermes[Hermes Agent]
-  Workspace --> OpenCode[OpenCode]
-  Workspace -. M3 .-> Herdr[Herdr]
+  Workspace --> Herdr[Herdr named project session]
+  Herdr --> Claude[Claude Code pane]
+  Herdr --> Codex[Codex pane]
+  Herdr --> Hermes[Hermes Agent pane]
+  Herdr --> OpenCode[OpenCode pane]
+  Workspace --> Tmux[tmux fallback]
   Workspace -. M5 .-> RTK[RTK]
-  Workspace -. M6 scoped API .-> OV[OpenViking]
+  Workspace -. M6 .-> OV[OpenViking]
 ```
 
 ## Deployment source of truth
 
-Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that validated plan. Security rules therefore do not belong to Compose-specific code.
+Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that validated plan. M3 adds a structured detached execution flag so the Herdr headless server can run as a workspace process; it does not add shell command interpolation or Docker daemon access.
 
-## M2 agent boundary
+## Agent boundary
 
-Each agent integration is an `IAgentHarness` registered in `IAgentHarnessRegistry`. The CLI resolves a harness by id and uses the same launch pipeline for both canonical and ergonomic commands. There is no central agent switch statement.
+Each direct agent integration remains an `IAgentHarness`. M3 does not replace those M2 adapters: it composes them with Herdr. Direct `hstack claude|codex|hermes|opencode` remains the fallback path.
 
-The harness owns only HermesStack-facing adaptation: executable name, version inspection, upstream authentication entry point and small project-scoped defaults. The upstream agent remains responsible for its own interactive UI, authentication protocol and model behavior.
+## Session boundary
 
-Agent state is mounted separately beneath `~/.hstack/data/projects/<project>/`. Host user agent state is never implicitly reused.
+Each project receives the Herdr session name `hstack-<project-id>` and the logical Herdr workspace label `hstack:<project-id>`. Herdr state lives under that project's mounted HOME. HermesStack installs Herdr's bundled official integrations for the four managed agents and uses Herdr's JSON control commands to create topology and launch named agents.
 
-For Hermes Agent, `TERMINAL_ENV=local` is set by the deployment plan because the workspace container itself is already the sandbox; Hermes must not attempt to reach the host Docker daemon.
+Herdr is the logical session owner because current Herdr has its own persistent background server, pane model and native agent-session restoration. tmux remains installed and exposed through `hstack tmux` as a fallback; HermesStack deliberately does not nest Herdr inside tmux.

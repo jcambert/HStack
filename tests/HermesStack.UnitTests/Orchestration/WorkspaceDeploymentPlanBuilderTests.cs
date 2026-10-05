@@ -60,6 +60,8 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
                 plan.Mounts,
                 mount => mount.Target == "/home/hstack/.local/share/opencode");
 
+            Assert.Equal("hstack-demo", plan.Environment["HERDR_SESSION"]);
+            Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".config", "herdr")));
             Assert.Equal("/home/hstack/.claude", plan.Environment["CLAUDE_CONFIG_DIR"]);
             Assert.Equal("/home/hstack/.codex", plan.Environment["CODEX_HOME"]);
             Assert.Equal("/home/hstack/.hermes", plan.Environment["HERMES_HOME"]);
