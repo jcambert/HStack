@@ -5,6 +5,10 @@ namespace HermesStack.Infrastructure.Configuration;
 
 public sealed record ToolchainVersions(
     string WorkspaceVersion,
+    string HerdrVersion,
+    string HerdrReleaseTag,
+    string HerdrSha256X64,
+    string HerdrSha256Arm64,
     string ClaudeCodeVersion,
     string CodexVersion,
     string HermesVersion,
@@ -36,6 +40,10 @@ public sealed class ToolchainLockService
 
         return new ToolchainVersions(
             Require(document.Workspace?.Version, "workspace.version"),
+            Require(document.Tools?.Herdr?.Version, "tools.herdr.version"),
+            Require(document.Tools?.Herdr?.ReleaseTag, "tools.herdr.releaseTag"),
+            RequireDigest(document.Tools?.Herdr?.Sha256X64, "tools.herdr.sha256X64"),
+            RequireDigest(document.Tools?.Herdr?.Sha256Arm64, "tools.herdr.sha256Arm64"),
             Require(document.Tools?.ClaudeCode?.Version, "tools.claudeCode.version"),
             Require(document.Tools?.Codex?.Version, "tools.codex.version"),
             Require(document.Tools?.Hermes?.Version, "tools.hermes.version"),
@@ -56,6 +64,17 @@ public sealed class ToolchainLockService
         return value.Trim();
     }
 
+    private static string RequireDigest(string? value, string key)
+    {
+        var digest = Require(value, key).ToLowerInvariant();
+        if (digest.Length != 64 || digest.Any(static character => !Uri.IsHexDigit(character)))
+        {
+            throw new InvalidDataException($"A 64-character SHA-256 digest is required for '{key}'.");
+        }
+
+        return digest;
+    }
+
     public sealed class ToolchainLockDocument
     {
         public int SchemaVersion { get; set; }
@@ -71,6 +90,7 @@ public sealed class ToolchainLockService
     public sealed class ToolsEntry
     {
         public ToolEntry? Hermes { get; set; }
+        public ToolEntry? Herdr { get; set; }
         public ToolEntry? ClaudeCode { get; set; }
         public ToolEntry? Codex { get; set; }
         public ToolEntry? OpenCode { get; set; }
@@ -81,5 +101,7 @@ public sealed class ToolchainLockService
         public string? Version { get; set; }
         public string? ReleaseTag { get; set; }
         public string? Commit { get; set; }
+        public string? Sha256X64 { get; set; }
+        public string? Sha256Arm64 { get; set; }
     }
 }

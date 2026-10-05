@@ -4,6 +4,7 @@ using HermesStack.Application.Integrations;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
+using HermesStack.Application.Sessions;
 using HermesStack.Domain.Integrations;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
@@ -42,6 +43,12 @@ internal static class HStackCli
             var integrations = CreateIntegrationRegistry();
             var agents = CreateAgentHarnessRegistry(orchestrator);
             var agentCli = new HermesStack.Cli.AgentCliService(projectService, planBuilder, orchestrator, agents);
+            var herdrSessions = new HerdrSessionService(orchestrator, agents);
+            var sessionCli = new HermesStack.Cli.SessionCliService(
+                projectService,
+                planBuilder,
+                orchestrator,
+                herdrSessions);
 
             if (args.Length == 0)
             {
@@ -59,6 +66,9 @@ internal static class HStackCli
                 "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents),
                 "agent" => await agentCli.AgentAsync(args[1..]),
                 "auth" => await agentCli.AuthAsync(args[1..]),
+                "session" => await sessionCli.SessionAsync(args[1..]),
+                "herdr" => await sessionCli.HerdrAsync(args[1..]),
+                "tmux" => await sessionCli.TmuxAsync(args[1..]),
                 "claude" => await agentCli.AliasAsync("claude", args[1..]),
                 "codex" => await agentCli.AliasAsync("codex", args[1..]),
                 "hermes" => await agentCli.AliasAsync("hermes", args[1..]),
@@ -136,17 +146,22 @@ internal static class HStackCli
         if (OperatingSystem.IsLinux())
         {
             var uid = await processRunner.RunAsync(new("id", ["-u"]));
+            var gid = await processRunner.RunAsync(new("id", ["-g"]));
             if (!uid.IsSuccess ||
+                !gid.IsSuccess ||
                 !int.TryParse(uid.StandardOutput.Trim(), out var uidValue) ||
-                uidValue <= 0)
+                !int.TryParse(gid.StandardOutput.Trim(), out var gidValue) ||
+                uidValue <= 0 ||
+                gidValue <= 0)
             {
                 throw new InvalidOperationException(
-                    "Unable to determine the non-root Linux UID for the workspace image.");
+                    "Unable to determine the non-root Linux UID/GID for the workspace image.");
             }
 
             commonBuildArgs.AddRange(
             [
-                "--build-arg", $"HSTACK_UID={uidValue}"
+                "--build-arg", $"HSTACK_UID={uidValue}",
+                "--build-arg", $"HSTACK_GID={gidValue}"
             ]);
         }
 
@@ -168,6 +183,9 @@ internal static class HStackCli
             [
                 .. commonBuildArgs,
                 "--build-arg", $"HSTACK_WORKSPACE_VERSION={toolchain.WorkspaceVersion}",
+                "--build-arg", $"HERDR_VERSION={toolchain.HerdrVersion}",
+                "--build-arg", $"HERDR_SHA256_X64={toolchain.HerdrSha256X64}",
+                "--build-arg", $"HERDR_SHA256_ARM64={toolchain.HerdrSha256Arm64}",
                 "--build-arg", $"CLAUDE_CODE_VERSION={toolchain.ClaudeCodeVersion}",
                 "--build-arg", $"CODEX_VERSION={toolchain.CodexVersion}",
                 "--build-arg", $"HERMES_VERSION={toolchain.HermesVersion}",
@@ -177,9 +195,9 @@ internal static class HStackCli
             ]);
 
         AnsiConsole.MarkupLine(
-            $"[green]✓[/] Workspace images built with Claude {Markup.Escape(toolchain.ClaudeCodeVersion)}, " +
-            $"Codex {Markup.Escape(toolchain.CodexVersion)}, Hermes {Markup.Escape(toolchain.HermesVersion)}, " +
-            $"OpenCode {Markup.Escape(toolchain.OpenCodeVersion)}");
+            $"[green]✓[/] Workspace images built with Herdr {Markup.Escape(toolchain.HerdrVersion)}, " +
+            $"Claude {Markup.Escape(toolchain.ClaudeCodeVersion)}, Codex {Markup.Escape(toolchain.CodexVersion)}, " +
+            $"Hermes {Markup.Escape(toolchain.HermesVersion)}, OpenCode {Markup.Escape(toolchain.OpenCodeVersion)}");
         return 0;
     }
 
@@ -520,9 +538,12 @@ internal static class HStackCli
             IntegrationKind.SessionManager,
             new HashSet<IntegrationCapability>
             {
-                IntegrationCapability.InteractiveTty
+                IntegrationCapability.InteractiveTty,
+                IntegrationCapability.PersistentHome,
+                IntegrationCapability.ProjectScopedState,
+                IntegrationCapability.AgentHooks
             },
-            false),
+            true),
         new(
             "rtk",
             "RTK",
@@ -587,6 +608,12 @@ internal static class HStackCli
   hstack agent list [--project <project>]
   hstack agent run <agent> --project <project> [-- <args>]
   hstack auth <agent> --project <project>
+
+  hstack session init|status|list|agents|stop <project>
+  hstack session run <agent> <project> --name <name> [-- <args>]
+  hstack herdr <project>
+  hstack tmux <project> [session-name]
+
   hstack claude <project> [-- <args>]
   hstack codex <project> [-- <args>]
   hstack hermes <project> [-- <args>]

@@ -10,7 +10,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     HostMountValidator mountValidator,
     ICertificateBundleService certificateBundleService,
     string baseComposeFile,
-    string workspaceImage = "hstack/workspace-full:0.2.0") : IWorkspaceDeploymentPlanBuilder
+    string workspaceImage = "hstack/workspace-full:0.3.0") : IWorkspaceDeploymentPlanBuilder
 {
     public async Task<WorkspaceDeploymentPlan> BuildAsync(
         ProjectDefinition project,
@@ -49,6 +49,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             // intermediate directories as root on the host bind, preventing
             // the non-root workspace user from creating ~/.local/state.
             Path.Combine(home, ".config"),
+            Path.Combine(home, ".config", "herdr"),
             Path.Combine(home, ".local"),
             Path.Combine(home, ".local", "share"),
             Path.Combine(home, ".local", "state"),
@@ -79,6 +80,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             ["HOME"] = "/home/hstack",
             ["HSTACK_PROJECT_ID"] = project.Id,
             ["HSTACK_PROJECT_HOME"] = "/home/hstack",
+            ["HERDR_SESSION"] = $"hstack-{project.Id}",
             ["CLAUDE_CONFIG_DIR"] = "/home/hstack/.claude",
             ["CODEX_HOME"] = "/home/hstack/.codex",
             ["HERMES_HOME"] = "/home/hstack/.hermes",
