@@ -8,10 +8,12 @@ using HermesStack.Application.Sessions;
 using HermesStack.Domain.Integrations;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
+using HermesStack.Docker.Security;
 using HermesStack.Infrastructure.Certificates;
 using HermesStack.Infrastructure.Configuration;
 using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
+using HermesStack.Infrastructure.Security;
 using System.Security.Cryptography;
 using Spectre.Console;
 
@@ -21,6 +23,7 @@ internal static class HStackCli
 {
     public static async Task<int> RunAsync(string[] args)
     {
+        var redactor = new SecretRedactor();
         try
         {
             var dataRoot = new DefaultDataRootProvider(Environment.GetEnvironmentVariable("HSTACK_HOME"));
@@ -30,6 +33,10 @@ internal static class HStackCli
             var projectService = new ProjectService(projectStore, mountValidator);
             var processRunner = new ProcessRunner();
             var certificateService = new CertificateBundleService(dataRoot);
+            var configStore = new HStackConfigStore(dataRoot);
+            var secretStore = new LocalProtectedSecretStore(dataRoot);
+            var secretPolicies = new YamlSecretPolicyStore(dataRoot);
+            var secretInjection = new SecretInjectionService(secretStore, secretPolicies);
             var baseCompose = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "compose", "compose.yaml");
             var toolchainPath = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
             var toolchain = new ToolchainLockService().Load(toolchainPath);
@@ -38,17 +45,47 @@ internal static class HStackCli
                 mountValidator,
                 certificateService,
                 baseCompose,
-                $"hstack/workspace-full:{toolchain.WorkspaceVersion}");
+                $"hstack/workspace-full:{toolchain.WorkspaceVersion}",
+                configStore);
             var orchestrator = new DockerComposeWorkspaceOrchestrator(processRunner, new ComposeOverrideWriter());
             var integrations = CreateIntegrationRegistry();
             var agents = CreateAgentHarnessRegistry(orchestrator);
-            var agentCli = new HermesStack.Cli.AgentCliService(projectService, planBuilder, orchestrator, agents);
+            var agentCli = new HermesStack.Cli.AgentCliService(
+                projectService,
+                planBuilder,
+                orchestrator,
+                agents,
+                secretInjection);
             var herdrSessions = new HerdrSessionService(orchestrator, agents);
             var sessionCli = new HermesStack.Cli.SessionCliService(
                 projectService,
                 planBuilder,
                 orchestrator,
                 herdrSessions);
+            var securityEvaluator = new SecurityInspectionService();
+            var dockerSecurityInspector = new DockerWorkspaceSecurityInspector(processRunner);
+            var proxyCli = new HermesStack.Cli.ProxyCliService(configStore);
+            var secretCli = new HermesStack.Cli.SecretCliService(
+                projectService,
+                agents,
+                secretStore,
+                secretPolicies);
+            var securityCli = new HermesStack.Cli.SecurityCliService(
+                projectService,
+                planBuilder,
+                dockerSecurityInspector,
+                securityEvaluator,
+                secretPolicies);
+            var doctorCli = new HermesStack.Cli.DoctorCliService(
+                projectService,
+                planBuilder,
+                orchestrator,
+                agents,
+                configStore,
+                certificateService,
+                dockerSecurityInspector,
+                securityEvaluator,
+                secretPolicies);
 
             if (args.Length == 0)
             {
@@ -74,6 +111,10 @@ internal static class HStackCli
                 "hermes" => await agentCli.AliasAsync("hermes", args[1..]),
                 "opencode" => await agentCli.AliasAsync("opencode", args[1..]),
                 "cert" => await CertAsync(args[1..], dataRoot, certificateService),
+                "proxy" => await proxyCli.RunAsync(args[1..]),
+                "secret" => await secretCli.RunAsync(args[1..]),
+                "security" => await securityCli.RunAsync(args[1..]),
+                "doctor" => await doctorCli.RunAsync(args[1..]),
                 "integrations" => Integrations(args[1..], integrations),
                 "version" or "--version" or "-v" => ShowVersion(toolchain.WorkspaceVersion),
                 "help" or "--help" or "-h" => ShowHelp(),
@@ -82,7 +123,8 @@ internal static class HStackCli
         }
         catch (Exception exception)
         {
-            AnsiConsole.MarkupLine($"[red]ERROR[/] {Markup.Escape(exception.Message)}");
+            AnsiConsole.MarkupLine(
+                $"[red]ERROR[/] {Markup.Escape(redactor.Redact(exception.Message))}");
             return 1;
         }
     }
@@ -620,6 +662,12 @@ internal static class HStackCli
   hstack opencode <project> [-- <args>]
 
   hstack cert add <certificate.pem>
+  hstack proxy show|set|disable
+  hstack secret set <NAME> --project <project> --agents <csv> --from-env <ENV>
+  hstack secret list --project <project>
+  hstack secret remove <NAME> --project <project>
+  hstack security inspect <project>
+  hstack doctor [project] [--network|--certificates|--security]
   hstack integrations list
   hstack version
 """);
