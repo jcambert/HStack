@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
 
 ARG HSTACK_UID=1000
 ARG HSTACK_GID=1000
@@ -19,10 +19,17 @@ RUN apt-get update \
        ripgrep fd-find procps psmisc lsof openssh-client tmux python3 python3-pip python3-venv tini \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
-    && groupadd --gid "${HSTACK_GID}" hstack \
-    && useradd --uid "${HSTACK_UID}" --gid "${HSTACK_GID}" --create-home --shell /bin/bash hstack \
+    && if getent passwd "${HSTACK_UID}" >/dev/null && [ "$(getent passwd "${HSTACK_UID}" | cut -d: -f1)" != "node" ]; then \
+         echo "Requested HSTACK_UID ${HSTACK_UID} already exists in base image" >&2; exit 1; \
+       fi \
+    && if getent group "${HSTACK_GID}" >/dev/null && [ "$(getent group "${HSTACK_GID}" | cut -d: -f1)" != "node" ]; then \
+         target_group="$(getent group "${HSTACK_GID}" | cut -d: -f1)"; \
+       else \
+         groupmod --gid "${HSTACK_GID}" --new-name hstack node; target_group=hstack; \
+       fi \
+    && usermod --uid "${HSTACK_UID}" --gid "$target_group" --login hstack --home /home/hstack --move-home node \
     && mkdir -p /workspace /etc/hstack/certs /home/hstack/.hstack/certs \
-    && chown -R hstack:hstack /workspace /home/hstack
+    && chown -R hstack:"$target_group" /workspace /home/hstack
 
 COPY entrypoint.sh /usr/local/bin/hstack-workspace-entrypoint
 RUN chmod 0755 /usr/local/bin/hstack-workspace-entrypoint

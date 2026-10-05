@@ -5,13 +5,12 @@ HermesStack keeps GitHub Actions usage deliberately low during active developmen
 ## Rules
 
 - Do not push every small edit or fix.
-- Work locally and group related changes into a meaningful vertical increment.
-- Push at stable checkpoints: completed user story, substantial vertical slice, or milestone checkpoint.
-- Prefer one consolidated remote commit for a batch when intermediate commits have no review value.
-- GitHub Actions CI is not triggered by ordinary pushes to `main`.
-- CI runs on pull requests to `main` or by explicit `workflow_dispatch`.
-- Re-run CI only when the result can materially validate a new batch of changes.
-
-Local commits are allowed for safety and rollback because they do not consume GitHub Actions minutes until pushed.
+- Work locally or through unreferenced Git objects and group related changes into a meaningful vertical increment.
+- Prefer one consolidated remote commit for a completed story batch or milestone checkpoint.
+- Normal pushes to `main` do **not** trigger GitHub Actions.
+- Open a pull request only when a consolidated candidate is worth validating; the PR runs one Linux build/test/end-to-end gate.
+- `workflow_dispatch` remains available for explicit manual validation; the optional Windows compile/unit-test job is off by default.
+- Merge the exact validated candidate to `main`; the merge push itself does not trigger another run.
+- Re-run CI only when a failed result requires a materially changed candidate.
 
 This policy may be overridden explicitly for release validation or a security-critical change.
