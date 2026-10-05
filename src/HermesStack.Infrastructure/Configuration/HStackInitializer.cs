@@ -21,7 +21,8 @@ public sealed class HStackInitializer(IDataRootProvider dataRoot)
             Path.Combine(dataRoot.Root, "runtime", "locks"),
             Path.Combine(dataRoot.Root, "backups"),
             Path.Combine(dataRoot.Root, "logs"),
-            Path.Combine(dataRoot.Root, "versions")
+            Path.Combine(dataRoot.Root, "versions"),
+            Path.Combine(dataRoot.Root, "secrets")
         };
 
         foreach (var directory in directories)
@@ -42,6 +43,13 @@ public sealed class HStackInitializer(IDataRootProvider dataRoot)
                 "    enabled: false",
                 "network:",
                 "  bindAddress: 127.0.0.1",
+                "proxy:",
+                "  enabled: false",
+                "  noProxy:",
+                "    - localhost",
+                "    - 127.0.0.1",
+                "    - ::1",
+                "    - host.docker.internal",
                 "defaults:",
                 "  workspace:",
                 "    resources:",
