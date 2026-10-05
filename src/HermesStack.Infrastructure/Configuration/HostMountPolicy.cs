@@ -20,7 +20,17 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
             return Forbidden(trimmed, "HS3001", "Docker daemon sockets and pipes are forbidden in agent workspaces.");
         }
 
-        return IsWindowsPath(trimmed) ? ClassifyWindows(trimmed) : ClassifyUnix(trimmed);
+        if (IsWindowsPath(trimmed))
+        {
+            return ClassifyWindows(trimmed);
+        }
+
+        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        {
+            return Forbidden(trimmed, "HS1002", "Host mount paths must be absolute.");
+        }
+
+        return ClassifyUnix(trimmed);
     }
 
     private static MountValidationResult ClassifyWindows(string path)
@@ -64,7 +74,7 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
 
     private static MountValidationResult ClassifyUnix(string path)
     {
-        var normalized = Path.GetFullPath(path);
+        var normalized = NormalizeUnix(path);
         if (normalized == "/")
         {
             return Forbidden(normalized, "HS1007", "Mounting the host filesystem root is forbidden.");
@@ -88,7 +98,9 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
         }
 
         var currentHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!string.IsNullOrEmpty(currentHome) && string.Equals(normalized.TrimEnd('/'), Path.GetFullPath(currentHome).TrimEnd('/'), StringComparison.Ordinal))
+        if (!string.IsNullOrEmpty(currentHome) &&
+            currentHome.StartsWith("/", StringComparison.Ordinal) &&
+            string.Equals(normalized, NormalizeUnix(currentHome), StringComparison.Ordinal))
         {
             return Forbidden(normalized, "HS3003", "Mounting the host HOME directory is forbidden.");
         }
@@ -105,13 +117,47 @@ public sealed partial class HostMountPolicy : IHostMountPolicy
 
     private static string NormalizeWindows(string path)
     {
-        var normalized = path.Replace('/', '\\').TrimEnd('\\');
-        if (normalized.Length == 2 && normalized[1] == ':')
+        var canonical = path.Replace('/', '\\');
+        var drive = char.ToUpperInvariant(canonical[0]);
+        var segments = NormalizeSegments(
+            canonical[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        return segments.Count == 0
+            ? $"{drive}:\\"
+            : $"{drive}:\\{string.Join('\\', segments)}";
+    }
+
+    private static string NormalizeUnix(string path)
+    {
+        var segments = NormalizeSegments(
+            path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return segments.Count == 0 ? "/" : $"/{string.Join('/', segments)}";
+    }
+
+    private static IReadOnlyList<string> NormalizeSegments(IEnumerable<string> segments)
+    {
+        var normalized = new List<string>();
+        foreach (var segment in segments)
         {
-            normalized += "\\";
+            if (segment == ".")
+            {
+                continue;
+            }
+
+            if (segment == "..")
+            {
+                if (normalized.Count > 0)
+                {
+                    normalized.RemoveAt(normalized.Count - 1);
+                }
+
+                continue;
+            }
+
+            normalized.Add(segment);
         }
 
-        return char.ToUpperInvariant(normalized[0]) + normalized[1..];
+        return normalized;
     }
 
     private static MountValidationResult Safe(string path) => new(MountClassification.Safe, path, "HS0000", "Mount is allowed by the default policy.");

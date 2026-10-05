@@ -15,11 +15,10 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             Path.GetTempPath(),
             "hstack-tests",
             Guid.NewGuid().ToString("N"));
-        var projectPath = Path.Combine(root, "src", "demo");
+        var projectPath = CreateSafeProjectPath();
 
         try
         {
-            Directory.CreateDirectory(projectPath);
             var dataRoot = new DefaultDataRootProvider(Path.Combine(root, "hstack-home"));
             Directory.CreateDirectory(dataRoot.CorporateCertificatesDirectory);
             await File.WriteAllTextAsync(
@@ -91,11 +90,10 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             Path.GetTempPath(),
             "hstack-tests",
             Guid.NewGuid().ToString("N"));
-        var projectPath = Path.Combine(root, "src", "demo");
+        var projectPath = CreateSafeProjectPath();
 
         try
         {
-            Directory.CreateDirectory(projectPath);
             var dataRoot = new DefaultDataRootProvider(Path.Combine(root, "hstack-home"));
             var builder = new WorkspaceDeploymentPlanBuilder(
                 dataRoot,
@@ -129,11 +127,10 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             Path.GetTempPath(),
             "hstack-tests",
             Guid.NewGuid().ToString("N"));
-        var projectPath = Path.Combine(root, "src", "demo");
+        var projectPath = CreateSafeProjectPath();
 
         try
         {
-            Directory.CreateDirectory(projectPath);
             var dataRoot = new DefaultDataRootProvider(Path.Combine(root, "hstack-home"));
             var builder = new WorkspaceDeploymentPlanBuilder(
                 dataRoot,
@@ -158,4 +155,9 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             }
         }
     }
+
+    private static string CreateSafeProjectPath() =>
+        OperatingSystem.IsWindows()
+            ? $@"C:\Dev\hstack-tests\{Guid.NewGuid():N}\src\demo"
+            : $"/tmp/hstack-tests/{Guid.NewGuid():N}/src/demo";
 }

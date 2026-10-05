@@ -39,7 +39,7 @@ jobs:
         run: bash tests/e2e/m3-smoke.sh
 
   windows-compile:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.windows_validation }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
