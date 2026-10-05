@@ -1,6 +1,7 @@
 using HermesStack.Application.Abstractions;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
+using HermesStack.Application.Security;
 using HermesStack.Domain.Agents;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
@@ -12,7 +13,8 @@ internal sealed class AgentCliService(
     ProjectService projects,
     WorkspaceDeploymentPlanBuilder plans,
     DockerComposeWorkspaceOrchestrator orchestrator,
-    IAgentHarnessRegistry registry)
+    IAgentHarnessRegistry registry,
+    SecretInjectionService secretInjection)
 {
     public async Task<int> AgentAsync(string[] args)
     {
@@ -127,8 +129,12 @@ internal sealed class AgentCliService(
             await orchestrator.UpAsync(plan);
         }
 
+        var environment = mode == AgentLaunchMode.Run
+            ? await secretInjection.ResolveAsync(project.Id, agentId)
+            : new Dictionary<string, string>();
+
         return await harness.LaunchAsync(
-            new AgentLaunchRequest(plan, mode, arguments));
+            new AgentLaunchRequest(plan, mode, arguments, environment));
     }
 
     private static IReadOnlyList<string> Passthrough(string[] args)
