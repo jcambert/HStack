@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-m1:
+  linux-m2:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,8 @@ jobs:
         run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
       - name: Integration tests
         run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release
-      - name: M1 end-to-end Docker security smoke test
-        run: bash tests/e2e/m1-smoke.sh
+      - name: M2 Agent Runtime end-to-end gate
+        run: bash tests/e2e/m2-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.windows_validation }}

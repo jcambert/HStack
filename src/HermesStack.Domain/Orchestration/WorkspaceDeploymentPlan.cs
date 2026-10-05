@@ -34,6 +34,14 @@ public sealed record WorkspaceExecutionRequest(
     IReadOnlyList<string> Command,
     bool Interactive = true);
 
+public sealed record WorkspaceExecutionResult(
+    int ExitCode,
+    string StandardOutput,
+    string StandardError)
+{
+    public bool IsSuccess => ExitCode == 0;
+}
+
 public sealed record WorkspaceLogRequest(
     WorkspaceDeploymentPlan Plan,
     bool Follow = true,

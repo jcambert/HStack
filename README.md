@@ -2,21 +2,45 @@
 
 HermesStack is a local secure control plane for AI-agent development workspaces.
 
-**M1 Secure Foundation is complete.** The next product increment is M2 Agent Runtime.
+**M2 Agent Runtime is complete.** Claude Code, Codex, Hermes Agent and OpenCode are pinned in the workspace image and launched only inside the selected project's Docker workspace.
 
 ```text
 hstack init
-hstack cert add company-root.crt
 hstack project add mascara C:\\Dev\\Mascara
 hstack up mascara
-hstack shell mascara
-hstack status mascara
-hstack down mascara
+
+hstack agent list --project mascara
+hstack claude mascara
+hstack codex mascara
+hstack hermes mascara
+hstack opencode mascara
+
+hstack auth claude --project mascara
+hstack auth codex --project mascara
+hstack auth hermes --project mascara
+hstack auth opencode --project mascara
 ```
 
-The control plane runs on the host. Managed coding agents run inside one Docker workspace per project. Docker daemon sockets, privileged containers and broad host mounts are forbidden by policy.
+The ergonomic agent commands are aliases of the same harness/registry path used by `hstack agent run`; they do not duplicate launch policy.
 
-See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M1-REPORT.md`.
+## Project-scoped state
+
+Agent authentication and state are isolated per project:
+
+```text
+~/.hstack/data/projects/<project>/
+├── home/
+├── claude/          -> /home/hstack/.claude
+├── codex/           -> /home/hstack/.codex
+├── hermes/          -> /home/hstack/.hermes
+└── opencode/
+    ├── config/      -> /home/hstack/.config/opencode
+    └── data/        -> /home/hstack/.local/share/opencode
+```
+
+HermesStack never automatically mounts the host user's Claude, Codex, Hermes, OpenCode, SSH or Docker credentials into a managed workspace.
+
+See `docs/architecture.md`, `docs/security.md`, `docs/agile/ROADMAP.md` and `docs/agile/M2-REPORT.md`.
 
 ## Development workflow
 

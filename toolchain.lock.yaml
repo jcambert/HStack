@@ -1,29 +1,34 @@
 schemaVersion: 1
 workspace:
-  version: "0.1.0"
+  version: "0.2.0"
 runtime:
   node:
     version: "24.21.0"
     source: "node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe"
   python:
-    version: "debian-trixie-system"
-    source: "apt"
+    version: "hermes-managed-compatible"
+    source: "Hermes official installer"
 tools:
   hermes:
-    version: "deferred-to-M2"
-    source: "official"
+    version: "0.21.5"
+    releaseTag: "v2026.9.24"
+    commit: "f97608f178d1ffeca59860195ab7da295f7c8e5f"
+    source: "NousResearch/hermes-agent release source + pinned uv.lock"
   herdr:
     version: "deferred-to-M3"
     source: "official"
   claudeCode:
-    version: "deferred-to-M2"
-    source: "official"
+    version: "2.1.289"
+    releaseTag: "v2.1.289"
+    source: "anthropics/claude-code official release artifact"
   codex:
-    version: "deferred-to-M2"
-    source: "official"
+    version: "0.160.0"
+    releaseTag: "rust-v0.160.0"
+    source: "npm:@openai/codex"
   openCode:
-    version: "deferred-to-M2"
-    source: "official"
+    version: "1.18.34"
+    releaseTag: "v1.18.34"
+    source: "npm:opencode-ai"
   rtk:
     version: "deferred-to-M5"
     source: "rtk-ai/rtk"

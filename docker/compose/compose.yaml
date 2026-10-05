@@ -1,6 +1,6 @@
 services:
   workspace:
-    image: hstack/workspace-full:${HSTACK_WORKSPACE_VERSION:-0.1.0}
+    image: hstack/workspace-full:${HSTACK_WORKSPACE_VERSION:-0.2.0}
     init: true
     working_dir: /workspace
     stdin_open: true

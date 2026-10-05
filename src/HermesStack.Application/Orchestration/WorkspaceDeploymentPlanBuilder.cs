@@ -10,9 +10,12 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     HostMountValidator mountValidator,
     ICertificateBundleService certificateBundleService,
     string baseComposeFile,
-    string workspaceImage = "hstack/workspace-full:0.1.0") : IWorkspaceDeploymentPlanBuilder
+    string workspaceImage = "hstack/workspace-full:0.2.0") : IWorkspaceDeploymentPlanBuilder
 {
-    public async Task<WorkspaceDeploymentPlan> BuildAsync(ProjectDefinition project, string? orchestratorOverride = null, CancellationToken cancellationToken = default)
+    public async Task<WorkspaceDeploymentPlan> BuildAsync(
+        ProjectDefinition project,
+        string? orchestratorOverride = null,
+        CancellationToken cancellationToken = default)
     {
         var validation = mountValidator.Validate(project.HostPath);
         if (!validation.IsAllowed)
@@ -20,29 +23,77 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             throw new InvalidOperationException($"{validation.Code}: {validation.Message}");
         }
 
+        if (!string.Equals(project.StateScope, "isolated", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException(
+                $"State scope '{project.StateScope}' is not supported in M2. Project agent state is isolated by default.");
+        }
+
         var projectDataRoot = dataRoot.GetProjectDataRoot(project.Id);
         var projectRuntimeRoot = dataRoot.GetProjectRuntimeRoot(project.Id);
-        Directory.CreateDirectory(projectDataRoot);
-        Directory.CreateDirectory(projectRuntimeRoot);
-        Directory.CreateDirectory(Path.Combine(projectDataRoot, "home"));
+
+        var home = Path.Combine(projectDataRoot, "home");
+        var claude = Path.Combine(projectDataRoot, "claude");
+        var codex = Path.Combine(projectDataRoot, "codex");
+        var hermes = Path.Combine(projectDataRoot, "hermes");
+        var openCodeConfig = Path.Combine(projectDataRoot, "opencode", "config");
+        var openCodeData = Path.Combine(projectDataRoot, "opencode", "data");
+
+        foreach (var directory in new[]
+        {
+            projectDataRoot,
+            projectRuntimeRoot,
+            home,
+            // Pre-create XDG parents in the project-owned HOME before Docker
+            // attaches nested OpenCode binds. Otherwise Docker creates those
+            // intermediate directories as root on the host bind, preventing
+            // the non-root workspace user from creating ~/.local/state.
+            Path.Combine(home, ".config"),
+            Path.Combine(home, ".local"),
+            Path.Combine(home, ".local", "share"),
+            Path.Combine(home, ".local", "state"),
+            Path.Combine(home, ".cache"),
+            claude,
+            codex,
+            hermes,
+            openCodeConfig,
+            openCodeData
+        })
+        {
+            Directory.CreateDirectory(directory);
+        }
 
         var mounts = new List<WorkspaceMount>
         {
             new(validation.NormalizedPath, "/workspace", false, "project"),
-            new(Path.Combine(projectDataRoot, "home"), "/home/hstack", false, "workspace-home")
+            new(home, "/home/hstack", false, "workspace-home"),
+            new(claude, "/home/hstack/.claude", false, "agent-state:claude"),
+            new(codex, "/home/hstack/.codex", false, "agent-state:codex"),
+            new(hermes, "/home/hstack/.hermes", false, "agent-state:hermes"),
+            new(openCodeConfig, "/home/hstack/.config/opencode", false, "agent-state:opencode-config"),
+            new(openCodeData, "/home/hstack/.local/share/opencode", false, "agent-state:opencode-data")
         };
 
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["HOME"] = "/home/hstack",
             ["HSTACK_PROJECT_ID"] = project.Id,
-            ["HSTACK_PROJECT_HOME"] = "/home/hstack"
+            ["HSTACK_PROJECT_HOME"] = "/home/hstack",
+            ["CLAUDE_CONFIG_DIR"] = "/home/hstack/.claude",
+            ["CODEX_HOME"] = "/home/hstack/.codex",
+            ["HERMES_HOME"] = "/home/hstack/.hermes",
+            ["TERMINAL_ENV"] = "local",
+            ["OPENCODE_DISABLE_AUTOUPDATE"] = "1"
         };
 
         var corporateBundle = await certificateBundleService.BuildCorporateBundleAsync(cancellationToken);
         if (corporateBundle is not null)
         {
-            mounts.Add(new WorkspaceMount(corporateBundle, "/etc/hstack/certs/corporate-ca.crt", true, "corporate-ca"));
+            mounts.Add(new WorkspaceMount(
+                corporateBundle,
+                "/etc/hstack/certs/corporate-ca.crt",
+                true,
+                "corporate-ca"));
             environment["HSTACK_CORPORATE_CA_FILE"] = "/etc/hstack/certs/corporate-ca.crt";
             environment["SSL_CERT_FILE"] = "/home/hstack/.hstack/certs/ca-bundle.crt";
             environment["REQUESTS_CA_BUNDLE"] = "/home/hstack/.hstack/certs/ca-bundle.crt";
@@ -55,14 +106,16 @@ public sealed class WorkspaceDeploymentPlanBuilder(
         {
             if (!string.Equals(port.Bind, "127.0.0.1", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"HS3008: Port {port.Container} must bind to 127.0.0.1 in M1.");
+                throw new InvalidOperationException(
+                    $"HS3008: Port {port.Container} must bind to 127.0.0.1.");
             }
         }
 
         var orchestrator = orchestratorOverride ?? project.Orchestrator ?? "compose";
         if (!string.Equals(orchestrator, "compose", StringComparison.OrdinalIgnoreCase))
         {
-            throw new NotSupportedException($"Orchestrator '{orchestrator}' is not implemented in M1.");
+            throw new NotSupportedException(
+                $"Orchestrator '{orchestrator}' is not implemented in the current milestone.");
         }
 
         return new WorkspaceDeploymentPlan(

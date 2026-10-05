@@ -8,7 +8,8 @@ public sealed record ProjectDefinition(
     string Access = "read-write",
     string? Orchestrator = null,
     WorkspaceResources? Resources = null,
-    IReadOnlyList<ProjectPort>? Ports = null)
+    IReadOnlyList<ProjectPort>? Ports = null,
+    string StateScope = "isolated")
 {
     public WorkspaceResources EffectiveResources => Resources ?? new WorkspaceResources();
     public IReadOnlyList<ProjectPort> EffectivePorts => Ports ?? [];
