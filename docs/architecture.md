@@ -5,14 +5,18 @@ HermesStack is a local secure control plane. It owns orchestration, policy, life
 ```mermaid
 flowchart TD
   Host[Host] --> H[hstack control plane]
+  H --> Config[Proxy + CA policy]
+  H --> Secrets[Protected secret store]
   H --> Plan[WorkspaceDeploymentPlan]
   H --> Registry[IAgentHarnessRegistry]
   H --> Sessions[HerdrSessionService]
+  H --> Inspect[Security inspection + doctor]
   Plan --> Orch[IWorkspaceOrchestrator]
   Registry --> Orch
   Sessions --> Orch
   Orch --> Compose[Docker Compose]
   Compose --> Workspace[Project workspace container]
+  Secrets -. authorized exec only .-> Registry
   Workspace --> Herdr[Herdr named project session]
   Herdr --> Claude[Claude Code pane]
   Herdr --> Codex[Codex pane]
@@ -25,14 +29,18 @@ flowchart TD
 
 ## Deployment source of truth
 
-Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that validated plan. M3 adds a structured detached execution flag so the Herdr headless server can run as a workspace process; it does not add shell command interpolation or Docker daemon access.
+Configuration is validated before a `WorkspaceDeploymentPlan` is built. Compose only renders and executes that validated plan. M4 adds normalized proxy variables to the plan but deliberately keeps secret values out of it.
 
 ## Agent boundary
 
-Each direct agent integration remains an `IAgentHarness`. M3 does not replace those M2 adapters: it composes them with Herdr. Direct `hstack claude|codex|hermes|opencode` remains the fallback path.
+Each direct agent integration remains an `IAgentHarness`. Direct `hstack claude|codex|hermes|opencode` remains the fallback path alongside Herdr-managed sessions.
+
+M4's `SecretInjectionService` resolves values only for the selected project and agent. The Docker orchestrator passes only secret names as `docker compose exec -e NAME` arguments while the actual values live in the Docker CLI process environment. This avoids both Compose persistence and command-line value exposure.
 
 ## Session boundary
 
-Each project receives the Herdr session name `hstack-<project-id>` and the logical Herdr workspace label `hstack:<project-id>`. Herdr state lives under that project's mounted HOME. HermesStack installs Herdr's bundled official integrations for the four managed agents and uses Herdr's JSON control commands to create topology and launch named agents.
+Each project receives the Herdr session name `hstack-<project-id>` and logical workspace label `hstack:<project-id>`. Herdr state lives under that project's mounted HOME. tmux remains a fallback and HermesStack does not nest Herdr inside tmux.
 
-Herdr is the logical session owner because current Herdr has its own persistent background server, pane model and native agent-session restoration. tmux remains installed and exposed through `hstack tmux` as a fallback; HermesStack deliberately does not nest Herdr inside tmux.
+## Inspection boundary
+
+`WorkspaceDeploymentPlan` remains the declared policy authority. `DockerWorkspaceSecurityInspector` reads effective container state when available. `SecurityInspectionService` applies deterministic scoring, and `doctor` combines host, network, certificate, agent/session and security diagnostics.
