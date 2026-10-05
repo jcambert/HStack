@@ -131,7 +131,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             new ProcessRequest(
                 "docker",
                 args,
-                Environment: request.EffectiveEnvironment,
+                Environment: ProcessEnvironment(request.EffectiveEnvironment),
                 CaptureOutput: !request.Interactive || request.Detached),
             cancellationToken);
         return result.ExitCode;
@@ -149,7 +149,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             new ProcessRequest(
                 "docker",
                 args,
-                Environment: request.EffectiveEnvironment,
+                Environment: ProcessEnvironment(request.EffectiveEnvironment),
                 CaptureOutput: true),
             cancellationToken);
         return new WorkspaceExecutionResult(
@@ -180,6 +180,13 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             cancellationToken);
         return result.ExitCode;
     }
+
+    private static IReadOnlyDictionary<string, string?> ProcessEnvironment(
+        IReadOnlyDictionary<string, string> environment) =>
+        environment.ToDictionary(
+            static item => item.Key,
+            static item => (string?)item.Value,
+            StringComparer.Ordinal);
 
     private static void AddExecutionEnvironment(
         ICollection<string> args,
