@@ -1,0 +1,16 @@
+ARG HSTACK_WORKSPACE_VERSION=0.1.0
+FROM hstack/workspace-base:${HSTACK_WORKSPACE_VERSION}
+
+ARG HSTACK_VERSION=0.1.0
+ARG HSTACK_REVISION=unknown
+ARG HSTACK_CREATED=unknown
+ARG HSTACK_TOOLCHAIN_SHA256=development
+
+LABEL org.opencontainers.image.title="HermesStack workspace full" \
+      org.opencontainers.image.version="${HSTACK_VERSION}" \
+      org.opencontainers.image.revision="${HSTACK_REVISION}" \
+      org.opencontainers.image.created="${HSTACK_CREATED}" \
+      io.hstack.toolchain.sha256="${HSTACK_TOOLCHAIN_SHA256}" \
+      io.hstack.kind="workspace-full"
+
+# Agent installations are intentionally added in M2 after upstream version verification.

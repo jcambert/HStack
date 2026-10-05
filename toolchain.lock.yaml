@@ -1,0 +1,32 @@
+schemaVersion: 1
+workspace:
+  version: "0.1.0"
+runtime:
+  node:
+    version: "24"
+    source: "node:24-bookworm-slim"
+  python:
+    version: "debian-bookworm-system"
+    source: "apt"
+tools:
+  hermes:
+    version: "deferred-to-M2"
+    source: "official"
+  herdr:
+    version: "deferred-to-M3"
+    source: "official"
+  claudeCode:
+    version: "deferred-to-M2"
+    source: "official"
+  codex:
+    version: "deferred-to-M2"
+    source: "official"
+  openCode:
+    version: "deferred-to-M2"
+    source: "official"
+  rtk:
+    version: "deferred-to-M5"
+    source: "rtk-ai/rtk"
+  openViking:
+    version: "deferred-to-M6"
+    source: "volcengine/OpenViking"

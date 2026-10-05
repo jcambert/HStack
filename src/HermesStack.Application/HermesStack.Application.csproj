@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../HermesStack.Domain/HermesStack.Domain.csproj" />
+  </ItemGroup>
+</Project>

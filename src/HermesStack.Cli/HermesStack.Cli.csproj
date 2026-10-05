@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>hstack</AssemblyName>
+    <RootNamespace>HermesStack.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HermesStack.Domain/HermesStack.Domain.csproj" />
+    <ProjectReference Include="../HermesStack.Application/HermesStack.Application.csproj" />
+    <ProjectReference Include="../HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
+    <ProjectReference Include="../HermesStack.Docker/HermesStack.Docker.csproj" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../docker/compose/compose.yaml" Link="assets/docker/compose/compose.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../docker/workspace/**" Link="assets/docker/workspace/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../toolchain.lock.yaml" Link="assets/toolchain.lock.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

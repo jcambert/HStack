@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HermesStack.Cli/HermesStack.Cli.csproj" />
+    <Project Path="src/HermesStack.Domain/HermesStack.Domain.csproj" />
+    <Project Path="src/HermesStack.Application/HermesStack.Application.csproj" />
+    <Project Path="src/HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
+    <Project Path="src/HermesStack.Docker/HermesStack.Docker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj" />
+    <Project Path="tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

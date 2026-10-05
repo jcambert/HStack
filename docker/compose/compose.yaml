@@ -1,0 +1,24 @@
+services:
+  workspace:
+    image: hstack/workspace-full:${HSTACK_WORKSPACE_VERSION:-0.1.0}
+    init: true
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    user: "${HSTACK_UID:-1000}:${HSTACK_GID:-1000}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m
+      - /var/tmp:rw,noexec,nosuid,nodev,size=256m
+    networks:
+      - workspace
+
+networks:
+  workspace:
+    driver: bridge

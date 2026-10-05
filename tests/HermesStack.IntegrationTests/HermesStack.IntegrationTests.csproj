@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/HermesStack.Domain/HermesStack.Domain.csproj" />
+    <ProjectReference Include="../../src/HermesStack.Application/HermesStack.Application.csproj" />
+    <ProjectReference Include="../../src/HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/HermesStack.Docker/HermesStack.Docker.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

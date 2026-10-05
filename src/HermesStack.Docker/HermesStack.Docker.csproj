@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../HermesStack.Domain/HermesStack.Domain.csproj" />
+    <ProjectReference Include="../HermesStack.Application/HermesStack.Application.csproj" />
+    <ProjectReference Include="../HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+</Project>

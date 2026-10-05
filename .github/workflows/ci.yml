@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore HermesStack.slnx
+      - run: dotnet build HermesStack.slnx --no-restore -c Release
+      - run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
+      - if: runner.os == 'Linux'
+        run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release --filter Category=Docker
