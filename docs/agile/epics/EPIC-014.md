@@ -25,6 +25,7 @@ Reduce avoidable agent-context token load without weakening security, hiding cri
 - Existing upstream capability: yes; Caveman supplies native agent skill/plugin integration.
 - Decision: integrate the signed v2.7.0 release source; do not implement semantic response compression.
 - Pin: v2.7.0 signed tag, commit `8b0c1d3699b8d83e87fe4605b378da20c41555e0`.
+- License boundary: the adoption surfaces/skills used by HermesStack are MIT; Caveman engine-linked directories are BSL-1.1 and are not embedded by this M5 integration.
 - Managed agents: Claude Code, Codex, Hermes Agent and OpenCode.
 - Security/quality impact: semantic compression may be lossy, so it is opt-in, restricted to aggressive/custom profiles, and never stacked with RTK without explicit consent.
 - Exit strategy: invoke the upstream uninstaller inside the project-isolated workspace.
