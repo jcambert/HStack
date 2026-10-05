@@ -39,7 +39,7 @@ public static partial class RtkGainParser
     {
         var match = Regex.Match(
             output,
-            $@"(?im)^s*{Regex.Escape(label)}s*[:│]s*([0-9][0-9,._ ]*)");
+            $@"(?im)^\s*{Regex.Escape(label)}\s*[:│]\s*([0-9][0-9,._ ]*)");
         if (!match.Success)
         {
             return null;
@@ -64,8 +64,8 @@ public static partial class RtkGainParser
             : null;
     }
 
-    [GeneratedRegex(@"(?im)(?:Saved|Savings)[^
-%]*(?([0-9]+(?:.[0-9]+)?)s*%)?",
+    [GeneratedRegex(
+        @"(?im)(?:Saved|Savings)[^\r\n%]*\(?([0-9]+(?:\.[0-9]+)?)\s*%\)?",
         RegexOptions.CultureInvariant)]
     private static partial Regex PercentRegex();
 }
