@@ -123,6 +123,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             args.Add("-T");
         }
 
+        AddExecutionEnvironment(args, request.EffectiveEnvironment);
         args.Add("workspace");
         args.AddRange(request.Command);
 
@@ -130,6 +131,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             new ProcessRequest(
                 "docker",
                 args,
+                Environment: ProcessEnvironment(request.EffectiveEnvironment),
                 CaptureOutput: !request.Interactive || request.Detached),
             cancellationToken);
         return result.ExitCode;
@@ -139,11 +141,16 @@ public sealed class DockerComposeWorkspaceOrchestrator(
         WorkspaceExecutionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var args = ComposeArgs(request.Plan, "exec", "-T", "workspace")
-            .Concat(request.Command)
-            .ToArray();
+        var args = new List<string>(ComposeArgs(request.Plan, "exec", "-T"));
+        AddExecutionEnvironment(args, request.EffectiveEnvironment);
+        args.Add("workspace");
+        args.AddRange(request.Command);
         var result = await processRunner.RunAsync(
-            new ProcessRequest("docker", args, CaptureOutput: true),
+            new ProcessRequest(
+                "docker",
+                args,
+                Environment: ProcessEnvironment(request.EffectiveEnvironment),
+                CaptureOutput: true),
             cancellationToken);
         return new WorkspaceExecutionResult(
             result.ExitCode,
@@ -172,6 +179,24 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             new ProcessRequest("docker", args, CaptureOutput: false),
             cancellationToken);
         return result.ExitCode;
+    }
+
+    private static IReadOnlyDictionary<string, string?> ProcessEnvironment(
+        IReadOnlyDictionary<string, string> environment) =>
+        environment.ToDictionary(
+            static item => item.Key,
+            static item => (string?)item.Value,
+            StringComparer.Ordinal);
+
+    private static void AddExecutionEnvironment(
+        ICollection<string> args,
+        IReadOnlyDictionary<string, string> environment)
+    {
+        foreach (var key in environment.Keys.OrderBy(static value => value, StringComparer.Ordinal))
+        {
+            args.Add("-e");
+            args.Add(key);
+        }
     }
 
     private static string[] ComposeArgs(WorkspaceDeploymentPlan plan, params string[] command) =>

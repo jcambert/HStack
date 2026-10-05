@@ -18,9 +18,12 @@ public sealed record AgentInstallationInfo(
 public sealed record AgentLaunchRequest(
     WorkspaceDeploymentPlan Plan,
     AgentLaunchMode Mode = AgentLaunchMode.Run,
-    IReadOnlyList<string>? Arguments = null)
+    IReadOnlyList<string>? Arguments = null,
+    IReadOnlyDictionary<string, string>? Environment = null)
 {
     public IReadOnlyList<string> EffectiveArguments => Arguments ?? [];
+    public IReadOnlyDictionary<string, string> EffectiveEnvironment =>
+        Environment ?? new Dictionary<string, string>();
 }
 
 public sealed record AgentConfigureRequest(WorkspaceDeploymentPlan Plan);

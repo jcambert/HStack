@@ -3,5 +3,6 @@
     <ProjectReference Include="../HermesStack.Domain/HermesStack.Domain.csproj" />
     <ProjectReference Include="../HermesStack.Application/HermesStack.Application.csproj" />
     <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 </Project>

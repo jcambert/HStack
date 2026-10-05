@@ -16,21 +16,30 @@ Mandatory workspace invariants:
 - workspace processes run as non-root user `hstack`;
 - corporate CA trust is added without disabling TLS verification.
 
-## Agent state
+## Agent and session state
 
-M2 adds dedicated per-project state binds for Claude Code, Codex, Hermes Agent and OpenCode. The project definition defaults to `stateScope: isolated`; any other state scope fails closed in M2.
+Agent authentication/state is isolated per project. Codex uses a project `CODEX_HOME`, Claude a project `CLAUDE_CONFIG_DIR`, Hermes a project `HERMES_HOME`, and OpenCode project config/data mounts.
 
-HermesStack does not automatically mount host `~/.claude`, `~/.codex`, `~/.hermes`, OpenCode credentials, `.ssh`, cloud credential directories or Docker endpoints. Authentication is performed from inside the selected workspace and persists into that project's dedicated state directory.
+Herdr runs only inside the selected workspace. `HERDR_SESSION=hstack-<project>` and Herdr snapshots persist under that project's HOME. tmux is a fallback inside the same sandbox.
 
-Codex uses a project `CODEX_HOME` with file credential storage. Claude uses a project `CLAUDE_CONFIG_DIR`. Hermes uses a project `HERMES_HOME` and is forced to the local terminal backend. OpenCode's config/data homes are project mounts and automatic updating is disabled in the managed image runtime.
+## M4 corporate network policy
 
-`HostMountValidator` classifies candidate project paths before a deployment plan is created. Compose generation performs a second fail-closed check for Docker daemon exposure and mandatory security flags.
+Proxy configuration supports `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and lowercase variants. Mandatory exclusions include localhost, loopback and `host.docker.internal`. Inline proxy credentials are rejected so credentials cannot enter `hstack.yaml`.
 
+Corporate CA support remains additive. HermesStack never uses `curl -k`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `GIT_SSL_NO_VERIFY=true` or equivalent TLS bypasses.
 
-## M3 session isolation
+## M4 protected secrets
 
-Herdr runs only inside the selected project workspace. `HERDR_SESSION=hstack-<project>` is injected by the validated deployment plan, and Herdr's config/session snapshots persist under that project's mounted `/home/hstack`.
+Secret values never belong in `hstack.yaml`, `projects.yaml` or Compose.
 
-The Herdr headless server is launched through structured `docker compose exec -d`; no shell is introduced and no Docker endpoint is mounted into the workspace. Official Herdr agent integrations write only to the already project-scoped Claude, Codex, Hermes and OpenCode state directories.
+`LocalProtectedSecretStore` uses Windows DPAPI current-user protection on Windows. On Unix-like hosts it uses AES-256-GCM and a locally generated master key restricted to the current user. `secrets.yaml` stores policy metadata only.
 
-tmux is a fallback inside the same sandbox. It does not widen host mounts, privileges, namespaces or network policy.
+A secret is resolved only when project + agent + explicit policy match. Direct agent launch passes the value to the selected `docker compose exec` process environment; the long-lived workspace service environment does not contain the secret.
+
+`ISecretRedactor` masks known values and common token shapes before diagnostic error output.
+
+## M4 inspection
+
+`hstack security inspect <project>` reads the validated deployment plan and, when available, the live Docker container. It reports mounts, writable mounts, ports, environment names, secret names, user, capabilities, security options, networks, privilege, Docker socket, devices, PID and IPC modes.
+
+The score is A/B/C/D/Critical. Docker socket exposure, privileged mode, host networking or a host-root mount always produce Critical.

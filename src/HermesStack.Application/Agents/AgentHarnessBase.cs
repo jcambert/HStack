@@ -48,7 +48,11 @@ public abstract class AgentHarnessBase(IWorkspaceOrchestrator orchestrator) : IA
             .ToArray();
 
         return Orchestrator.ExecAsync(
-            new WorkspaceExecutionRequest(request.Plan, command, Interactive: true),
+            new WorkspaceExecutionRequest(
+                request.Plan,
+                command,
+                Interactive: true,
+                Environment: request.EffectiveEnvironment),
             cancellationToken);
     }
 

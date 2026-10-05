@@ -33,7 +33,12 @@ public sealed record WorkspaceExecutionRequest(
     WorkspaceDeploymentPlan Plan,
     IReadOnlyList<string> Command,
     bool Interactive = true,
-    bool Detached = false);
+    bool Detached = false,
+    IReadOnlyDictionary<string, string>? Environment = null)
+{
+    public IReadOnlyDictionary<string, string> EffectiveEnvironment =>
+        Environment ?? new Dictionary<string, string>();
+}
 
 public sealed record WorkspaceExecutionResult(
     int ExitCode,

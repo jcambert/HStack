@@ -27,7 +27,7 @@ public sealed class ComposeOverrideWriter
                 ["io.hstack.managed"] = "true",
                 ["io.hstack.project"] = plan.Project.Id,
                 ["io.hstack.kind"] = "workspace",
-                ["io.hstack.version"] = "0.3.0"
+                ["io.hstack.version"] = "0.4.0"
             },
             ["cpus"] = plan.Project.EffectiveResources.Cpus.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["mem_limit"] = plan.Project.EffectiveResources.Memory,

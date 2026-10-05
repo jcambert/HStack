@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-m3:
+  linux-m4:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +35,10 @@ jobs:
         run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
       - name: Integration tests
         run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release
-      - name: M3 Sessions end-to-end gate
+      - name: M3 Sessions regression gate
         run: bash tests/e2e/m3-smoke.sh
+      - name: M4 Network & Security end-to-end gate
+        run: bash tests/e2e/m4-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
@@ -53,7 +55,8 @@ jobs:
   publish-artifacts:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs:
-      - linux-m3
+      - linux-m4
+      - windows-compile
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
