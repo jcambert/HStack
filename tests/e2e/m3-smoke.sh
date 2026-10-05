@@ -78,11 +78,19 @@ test -d "$HSTACK_HOME/data/projects/project-a/hermes/plugins/herdr-agent-state"
 test -f "$HSTACK_HOME/data/projects/project-a/opencode/config/plugins/herdr-agent-state.js"
 
 herdr_state="$HSTACK_HOME/data/projects/project-a/home/.config/herdr/sessions/hstack-project-a/session.json"
-for _ in $(seq 1 40); do
+# Herdr persists session topology asynchronously. Its persistence cadence can be
+# several seconds, so CI must wait for the observable durable-state contract
+# rather than race the first autosave.
+for _ in $(seq 1 150); do
   test -s "$herdr_state" && break
   sleep 0.1
 done
-test -s "$herdr_state"
+if ! test -s "$herdr_state"; then
+  echo "Herdr did not persist the named session within 15 seconds: $herdr_state" >&2
+  docker exec "$container" sh -c 'find "$HOME/.config/herdr" -maxdepth 4 -type f -print 2>/dev/null || true' >&2
+  docker exec "$container" sh -c 'tail -n 100 "$HOME/.config/herdr/sessions/$HERDR_SESSION/herdr-server.log" 2>/dev/null || true' >&2
+  exit 1
+fi
 
 workspace_before="$(docker exec "$container" herdr workspace list | jq -r '.result.workspaces[] | select(.label=="hstack:project-a") | .workspace_id')"
 test -n "$workspace_before"
