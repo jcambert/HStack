@@ -19,14 +19,20 @@
 - US-032 Install Herdr's official Claude, Codex, Hermes and OpenCode integrations.
 - US-033 Launch named agents through Herdr panes without shell interpolation.
 - US-034 Persist Herdr state in the project HOME and restore layout across workspace recreation.
-- US-035 Keep direct M2 launch and `hstack tmux` as explicit fallbacks.
+- US-035 Keep direct M2 agent launch and `hstack tmux` as explicit fallbacks.
 
-## Ready next — M4 Network & Security
+## Done — M4 Network & Security
 
-- EPIC-010..013: network policy, security inspection, secrets and hardening diagnostics.
+- US-040 Validate and propagate corporate proxy configuration without TLS bypasses.
+- US-041 Protect secrets locally and scope release by project + agent + policy.
+- US-042 Inspect declared/live workspace security and produce A/B/C/D/Critical score.
+- US-043 Diagnose host/project network, certificates, agents, sessions and security.
+
+## Ready next — M5 Token Efficiency
+
+- EPIC-014: token optimizer abstraction, RTK integration, policies, metrics and doctor support.
 
 ## Later
 
-- RTK token optimization — M5.
 - OpenViking shared context — M6.
 - Optional sandbox-provider spikes remain deferred until the native backend is stable.
