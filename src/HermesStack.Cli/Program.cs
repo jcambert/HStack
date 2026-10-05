@@ -5,15 +5,18 @@ using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
 using HermesStack.Application.Sessions;
+using HermesStack.Application.Tokens;
 using HermesStack.Domain.Integrations;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
 using HermesStack.Docker.Security;
+using HermesStack.Docker.Tokens;
 using HermesStack.Infrastructure.Certificates;
 using HermesStack.Infrastructure.Configuration;
 using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
 using HermesStack.Infrastructure.Security;
+using HermesStack.Infrastructure.Tokens;
 using System.Security.Cryptography;
 using Spectre.Console;
 
@@ -37,6 +40,8 @@ internal static class HStackCli
             var secretStore = new LocalProtectedSecretStore(dataRoot);
             var secretPolicies = new YamlSecretPolicyStore(dataRoot);
             var secretInjection = new SecretInjectionService(secretStore, secretPolicies);
+            var tokenStore = new YamlTokenOptimizationStore(dataRoot);
+            var tokenMetricStore = new JsonlTokenMetricStore(dataRoot);
             var baseCompose = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "compose", "compose.yaml");
             var toolchainPath = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
             var toolchain = new ToolchainLockService().Load(toolchainPath);
@@ -48,8 +53,27 @@ internal static class HStackCli
                 $"hstack/workspace-full:{toolchain.WorkspaceVersion}",
                 configStore);
             var orchestrator = new DockerComposeWorkspaceOrchestrator(processRunner, new ComposeOverrideWriter());
-            var integrations = CreateIntegrationRegistry();
+            var integrations = CreateIntegrationRegistry(toolchain);
             var agents = CreateAgentHarnessRegistry(orchestrator);
+            var tokenRegistry = new TokenOptimizerRegistry(
+            [
+                new RtkTokenOptimizer(orchestrator, toolchain.RtkVersion),
+                new CavemanTokenOptimizer(
+                    orchestrator,
+                    toolchain.CavemanVersion,
+                    toolchain.CavemanReleaseTag)
+            ]);
+            var tokenService = new TokenOptimizationService(
+                orchestrator,
+                tokenRegistry,
+                tokenStore,
+                tokenMetricStore,
+                new TokenOptimizationCompatibilityPolicy());
+            var tokenCli = new HermesStack.Cli.TokenCliService(
+                projectService,
+                planBuilder,
+                tokenService,
+                tokenRegistry);
             var agentCli = new HermesStack.Cli.AgentCliService(
                 projectService,
                 planBuilder,
@@ -100,7 +124,7 @@ internal static class HStackCli
                 "up" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.UpAsync(p, ct)),
                 "down" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.DownAsync(p, ct)),
                 "shell" => await ShellAsync(args[1..], projectService, planBuilder, orchestrator),
-                "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents),
+                "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
                 "agent" => await agentCli.AgentAsync(args[1..]),
                 "auth" => await agentCli.AuthAsync(args[1..]),
                 "session" => await sessionCli.SessionAsync(args[1..]),
@@ -114,6 +138,7 @@ internal static class HStackCli
                 "proxy" => await proxyCli.RunAsync(args[1..]),
                 "secret" => await secretCli.RunAsync(args[1..]),
                 "security" => await securityCli.RunAsync(args[1..]),
+                "token" => await tokenCli.RunAsync(args[1..]),
                 "doctor" => await doctorCli.RunAsync(args[1..]),
                 "integrations" => Integrations(args[1..], integrations),
                 "version" or "--version" or "-v" => ShowVersion(toolchain.WorkspaceVersion),
@@ -233,13 +258,21 @@ internal static class HStackCli
                 "--build-arg", $"HERMES_VERSION={toolchain.HermesVersion}",
                 "--build-arg", $"HERMES_RELEASE_TAG={toolchain.HermesReleaseTag}",
                 "--build-arg", $"HERMES_COMMIT={toolchain.HermesCommit}",
-                "--build-arg", $"OPENCODE_VERSION={toolchain.OpenCodeVersion}"
+                "--build-arg", $"OPENCODE_VERSION={toolchain.OpenCodeVersion}",
+                "--build-arg", $"RTK_VERSION={toolchain.RtkVersion}",
+                "--build-arg", $"RTK_RELEASE_TAG={toolchain.RtkReleaseTag}",
+                "--build-arg", $"RTK_SHA256_X64={toolchain.RtkSha256X64}",
+                "--build-arg", $"RTK_SHA256_ARM64={toolchain.RtkSha256Arm64}",
+                "--build-arg", $"CAVEMAN_VERSION={toolchain.CavemanVersion}",
+                "--build-arg", $"CAVEMAN_RELEASE_TAG={toolchain.CavemanReleaseTag}",
+                "--build-arg", $"CAVEMAN_COMMIT={toolchain.CavemanCommit}"
             ]);
 
         AnsiConsole.MarkupLine(
             $"[green]✓[/] Workspace images built with Herdr {Markup.Escape(toolchain.HerdrVersion)}, " +
             $"Claude {Markup.Escape(toolchain.ClaudeCodeVersion)}, Codex {Markup.Escape(toolchain.CodexVersion)}, " +
-            $"Hermes {Markup.Escape(toolchain.HermesVersion)}, OpenCode {Markup.Escape(toolchain.OpenCodeVersion)}");
+            $"Hermes {Markup.Escape(toolchain.HermesVersion)}, OpenCode {Markup.Escape(toolchain.OpenCodeVersion)}, " +
+            $"RTK {Markup.Escape(toolchain.RtkVersion)}, Caveman {Markup.Escape(toolchain.CavemanVersion)}");
         return 0;
     }
 
@@ -355,7 +388,8 @@ internal static class HStackCli
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
         DockerComposeWorkspaceOrchestrator orchestrator,
-        IAgentHarnessRegistry agents)
+        IAgentHarnessRegistry agents,
+        IntegrationRegistry integrations)
     {
         if (args.Length == 0)
         {
@@ -363,7 +397,7 @@ internal static class HStackCli
                 projects,
                 plans,
                 orchestrator,
-                CreateIntegrationRegistry(),
+                integrations,
                 agents);
             return 0;
         }
@@ -435,6 +469,8 @@ internal static class HStackCli
             .AddColumn("Integration")
             .AddColumn("Type")
             .AddColumn("Strategy")
+            .AddColumn("Version")
+            .AddColumn("Status")
             .AddColumn("MVP");
         foreach (var item in registry.All
             .OrderBy(static i => i.Kind)
@@ -444,6 +480,8 @@ internal static class HStackCli
                 item.DisplayName,
                 item.Kind.ToString(),
                 item.Strategy,
+                Markup.Escape(item.Version ?? "-"),
+                Markup.Escape(item.Status),
                 item.RequiredForMvp ? "yes" : "no");
         }
 
@@ -501,7 +539,7 @@ internal static class HStackCli
         new OpenCodeHarness(orchestrator)
     ]);
 
-    private static IntegrationRegistry CreateIntegrationRegistry() => new(
+    private static IntegrationRegistry CreateIntegrationRegistry(ToolchainVersions toolchain) => new(
     [
         new(
             "compose",
@@ -596,7 +634,27 @@ internal static class HStackCli
                 IntegrationCapability.TokenOptimization,
                 IntegrationCapability.Metrics
             },
-            false),
+            false,
+            "integrate",
+            toolchain.RtkVersion,
+            "Ready",
+            new HashSet<string>(["claude", "codex", "hermes", "opencode"], StringComparer.OrdinalIgnoreCase),
+            "rtk-ai/rtk official release"),
+        new(
+            "caveman",
+            "Caveman",
+            IntegrationKind.TokenOptimizer,
+            new HashSet<IntegrationCapability>
+            {
+                IntegrationCapability.AgentHooks,
+                IntegrationCapability.TokenOptimization
+            },
+            false,
+            "integrate",
+            toolchain.CavemanVersion,
+            "Opt-in",
+            new HashSet<string>(["claude", "codex", "hermes", "opencode"], StringComparer.OrdinalIgnoreCase),
+            "JuliusBrussee/caveman signed release"),
         new(
             "openviking",
             "OpenViking",
@@ -667,7 +725,15 @@ internal static class HStackCli
   hstack secret list --project <project>
   hstack secret remove <NAME> --project <project>
   hstack security inspect <project>
-  hstack doctor [project] [--network|--certificates|--security]
+  hstack token providers
+  hstack token status [project]
+  hstack token enable <project> [--provider rtk] [--profile balanced] [--agents <csv>]
+  hstack token disable <project> [--provider rtk|caveman|all]
+  hstack token configure <project> --profile off|safe|balanced|aggressive|custom
+  hstack token doctor <project>
+  hstack token gain <project>
+  hstack token stats <project> [--agent <agent>]
+  hstack doctor [project] [--network|--certificates|--security|--tokens]
   hstack integrations list
   hstack version
 """);
