@@ -11,7 +11,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     HostMountValidator mountValidator,
     ICertificateBundleService certificateBundleService,
     string baseComposeFile,
-    string workspaceImage = "hstack/workspace-full:0.4.0",
+    string workspaceImage = "hstack/workspace-full:0.5.0",
     IProxyConfigurationStore? proxyConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
 {
     public async Task<WorkspaceDeploymentPlan> BuildAsync(
@@ -87,7 +87,10 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             ["CODEX_HOME"] = "/home/hstack/.codex",
             ["HERMES_HOME"] = "/home/hstack/.hermes",
             ["TERMINAL_ENV"] = "local",
-            ["OPENCODE_DISABLE_AUTOUPDATE"] = "1"
+            ["OPENCODE_DISABLE_AUTOUPDATE"] = "1",
+            ["RTK_DB_PATH"] = "/tmp/hstack-rtk-tracking.db",
+            ["RTK_TELEMETRY_DISABLED"] = "1",
+            ["RTK_RECALL"] = "0"
         };
 
         if (proxyConfigurationStore is not null)
