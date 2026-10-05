@@ -146,17 +146,22 @@ internal static class HStackCli
         if (OperatingSystem.IsLinux())
         {
             var uid = await processRunner.RunAsync(new("id", ["-u"]));
+            var gid = await processRunner.RunAsync(new("id", ["-g"]));
             if (!uid.IsSuccess ||
+                !gid.IsSuccess ||
                 !int.TryParse(uid.StandardOutput.Trim(), out var uidValue) ||
-                uidValue <= 0)
+                !int.TryParse(gid.StandardOutput.Trim(), out var gidValue) ||
+                uidValue <= 0 ||
+                gidValue <= 0)
             {
                 throw new InvalidOperationException(
-                    "Unable to determine the non-root Linux UID for the workspace image.");
+                    "Unable to determine the non-root Linux UID/GID for the workspace image.");
             }
 
             commonBuildArgs.AddRange(
             [
-                "--build-arg", $"HSTACK_UID={uidValue}"
+                "--build-arg", $"HSTACK_UID={uidValue}",
+                "--build-arg", $"HSTACK_GID={gidValue}"
             ]);
         }
 

@@ -19,7 +19,7 @@ Every HermesStack project uses:
 - cwd: `/workspace`
 - persistent Herdr state: project-owned `/home/hstack/.config/herdr`
 
-`HerdrSessionService` starts the Herdr headless server through detached orchestrator execution, installs the official integrations for Claude Code, Codex, Hermes Agent and OpenCode, reuses a restored project workspace when present, and creates one only when absent.
+`HerdrSessionService` starts the Herdr headless server through detached orchestrator execution, installs the official integrations for Claude Code, Codex, Hermes Agent and OpenCode, reuses a restored project workspace when present, and creates one only when absent. On Linux, the workspace image aligns both UID and GID with the invoking host user so upstream integrations can preserve ownership during atomic config replacement without requiring any added capability.
 
 ## CLI
 
