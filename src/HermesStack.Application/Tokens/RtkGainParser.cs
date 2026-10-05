@@ -65,7 +65,7 @@ public static partial class RtkGainParser
     }
 
     [GeneratedRegex(
-        @"(?im)(?:Saved|Savings)[^\r\n%]*\(?([0-9]+(?:\.[0-9]+)?)\s*%\)?",
+        @"(?im)(?:Saved|Savings)[^\r\n%]*?([0-9]+(?:\.[0-9]+)?)\s*%",
         RegexOptions.CultureInvariant)]
     private static partial Regex PercentRegex();
 }
