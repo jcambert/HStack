@@ -10,7 +10,7 @@ Pinned toolchain:
 |---|---:|---|
 | Claude Code | 2.1.289 | exact official native release artifact with published SHA-256 |
 | Codex | 0.160.0 | supported npm package, exact version |
-| Hermes Agent | 0.21.5 / v2026.9.24 / f97608f | official installer script from exact stable tag + commit |
+| Hermes Agent | 0.21.5 / v2026.9.24 / f97608f | official installer endpoint with exact stable tag + commit |
 | OpenCode | 1.18.34 | supported npm package, exact version |
 
 `toolchain.lock.yaml` is loaded by the control plane and supplies the Docker build arguments; `latest` and deferred values are rejected for M2 tools.

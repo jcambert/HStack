@@ -67,8 +67,8 @@ RUN set -eux; \
     export HOME=/root; \
     export HERMES_HOME=/tmp/hstack-hermes-build; \
     mkdir -p "$HERMES_HOME"; \
-    curl -fsSL \
-      "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_RELEASE_TAG}/scripts/install.sh" \
+    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
+      "https://hermes-agent.nousresearch.com/install.sh" \
       -o /tmp/hermes-install.sh; \
     bash /tmp/hermes-install.sh \
       --branch "${HERMES_RELEASE_TAG}" \
