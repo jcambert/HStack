@@ -61,8 +61,10 @@ RUN set -eux; \
     opencode --version | grep -F "${OPENCODE_VERSION}"; \
     npm cache clean --force
 
-# Hermes Agent: execute the official installer script from the exact stable
-# release tag, then install that same tag. Browser/computer-use are deferred.
+# Hermes Agent: execute the official installer and pin the exact release commit.
+# The installer requires --commit to be an ancestor of a branch, so use main;
+# HERMES_RELEASE_TAG remains recorded as provenance for that exact commit.
+# Browser/computer-use are deferred.
 RUN set -eux; \
     export HOME=/root; \
     export HERMES_HOME=/tmp/hstack-hermes-build; \
@@ -71,7 +73,7 @@ RUN set -eux; \
       "https://hermes-agent.nousresearch.com/install.sh" \
       -o /tmp/hermes-install.sh; \
     bash /tmp/hermes-install.sh \
-      --branch "${HERMES_RELEASE_TAG}" \
+      --branch "main" \
       --commit "${HERMES_COMMIT}" \
       --skip-setup \
       --skip-browser \
