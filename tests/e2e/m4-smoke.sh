@@ -28,9 +28,9 @@ mkdir -p "$project_a" "$project_b"
 printf 'secret-a\n' > "$project_a/secret-a.txt"
 printf 'secret-b\n' > "$project_b/secret-b.txt"
 
-# The M3 gate that runs immediately before this one builds the pinned 0.4.0
+# The M3 gate that runs immediately before this one builds the pinned 0.5.0
 # workspace image. Keep this gate focused on M4 behavior.
-docker image inspect hstack/workspace-full:0.4.0 >/dev/null
+docker image inspect hstack/workspace-full:0.5.0 >/dev/null
 
 run_hstack project add project-a "$project_a"
 run_hstack project add project-b "$project_b"
