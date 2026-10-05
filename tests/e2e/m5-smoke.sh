@@ -73,7 +73,7 @@ assert_in_container /home/hstack/.hermes/plugins/rtk-rewrite/plugin.yaml
 assert_in_container /home/hstack/.config/opencode/plugins/rtk.ts
 
 # Generate real RTK aggregate data. This DB is intentionally ephemeral.
-docker exec "$container" rtk proxy ls /usr/bin >/dev/null
+docker exec "$container" rtk proxy "ls /usr/bin" >/dev/null
 if ! docker exec "$container" test -s /tmp/hstack-rtk-tracking.db; then
   echo "RTK tracking database was not created at the enforced tmpfs path" >&2
   exit 1
