@@ -76,7 +76,6 @@ RUN set -eux; \
       --skip-setup \
       --skip-browser \
       --skip-computer-use \
-      --no-skills \
       --non-interactive; \
     HERMES_HOME="$HERMES_HOME" hermes --version | grep -F "${HERMES_VERSION}"; \
     rm -rf "$HERMES_HOME" /tmp/hermes-install.sh
