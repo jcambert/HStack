@@ -46,7 +46,7 @@ These directories are mounted only into their corresponding agent homes. The hos
 - Codex credentials are stored as files under project `CODEX_HOME`; update checks are disabled.
 - Claude state is directed to project `CLAUDE_CONFIG_DIR`.
 - Hermes state is directed to project `HERMES_HOME`; `TERMINAL_ENV=local` ensures it uses the existing workspace sandbox rather than Docker-on-Docker.
-- OpenCode config/data are project-scoped and managed auto-update is disabled.
+- OpenCode config/data are project-scoped and managed auto-update is disabled. XDG parent directories are pre-created in the project-owned HOME so nested binds never leave root-owned host directories.
 - M1 container restrictions remain unchanged.
 
 ## Test strategy

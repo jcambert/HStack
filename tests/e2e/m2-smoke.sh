@@ -76,6 +76,8 @@ grep -F "$HSTACK_HOME/data/projects/project-a/codex -> /home/hstack/.codex" <<<"
 grep -F "$HSTACK_HOME/data/projects/project-a/hermes -> /home/hstack/.hermes" <<<"$mounts" >/dev/null
 grep -F "$HSTACK_HOME/data/projects/project-a/opencode/config -> /home/hstack/.config/opencode" <<<"$mounts" >/dev/null
 grep -F "$HSTACK_HOME/data/projects/project-a/opencode/data -> /home/hstack/.local/share/opencode" <<<"$mounts" >/dev/null
+test -d "$HSTACK_HOME/data/projects/project-a/home/.local/state"
+test -d "$HSTACK_HOME/data/projects/project-a/home/.cache"
 
 if grep -F "$HSTACK_HOME/data/projects/project-b" <<<"$mounts" >/dev/null; then
   echo "ProjectB agent state leaked into ProjectA" >&2

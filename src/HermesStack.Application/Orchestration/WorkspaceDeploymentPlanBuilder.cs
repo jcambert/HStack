@@ -44,6 +44,15 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             projectDataRoot,
             projectRuntimeRoot,
             home,
+            // Pre-create XDG parents in the project-owned HOME before Docker
+            // attaches nested OpenCode binds. Otherwise Docker creates those
+            // intermediate directories as root on the host bind, preventing
+            // the non-root workspace user from creating ~/.local/state.
+            Path.Combine(home, ".config"),
+            Path.Combine(home, ".local"),
+            Path.Combine(home, ".local", "share"),
+            Path.Combine(home, ".local", "state"),
+            Path.Combine(home, ".cache"),
             claude,
             codex,
             hermes,

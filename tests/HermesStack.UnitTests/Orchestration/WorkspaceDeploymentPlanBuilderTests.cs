@@ -65,6 +65,10 @@ public sealed class WorkspaceDeploymentPlanBuilderTests
             Assert.Equal("/home/hstack/.hermes", plan.Environment["HERMES_HOME"]);
             Assert.Equal("local", plan.Environment["TERMINAL_ENV"]);
             Assert.Equal("1", plan.Environment["OPENCODE_DISABLE_AUTOUPDATE"]);
+            Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".config")));
+            Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".local", "share")));
+            Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".local", "state")));
+            Assert.True(Directory.Exists(Path.Combine(plan.ProjectDataRoot, "home", ".cache")));
             Assert.Equal(
                 "/home/hstack/.hstack/certs/ca-bundle.crt",
                 plan.Environment["SSL_CERT_FILE"]);
