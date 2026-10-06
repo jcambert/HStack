@@ -27,6 +27,25 @@ public sealed class OpenVikingContextScopeMapperTests
     }
 
     [Fact]
+    public void Shared_writes_require_an_explicit_namespace()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.GetWriteUri(new ContextWriteRequest(
+                "a",
+                ContextScope.Shared,
+                "orphan-item",
+                "content")));
+
+        Assert.Equal(
+            "viking://resources/hstack-shared/standards/csharp.md",
+            _mapper.GetWriteUri(new ContextWriteRequest(
+                "a",
+                ContextScope.Shared,
+                "standards/CSharp",
+                "content")));
+    }
+
+    [Fact]
     public void Global_scope_fails_closed()
     {
         Assert.Throws<InvalidOperationException>(() =>
