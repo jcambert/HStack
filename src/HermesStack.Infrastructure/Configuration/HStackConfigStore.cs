@@ -194,7 +194,7 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) :
 
     public sealed class MemoryDto
     {
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; } = false;
         public string? Provider { get; set; } = "openviking";
         public CaptureDto? Capture { get; set; } = new();
         public ContextBudgetDto? ContextBudget { get; set; } = new();

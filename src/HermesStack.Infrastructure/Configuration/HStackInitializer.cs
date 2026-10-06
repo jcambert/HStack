@@ -54,7 +54,7 @@ public sealed class HStackInitializer(IDataRootProvider dataRoot)
                 "    - host.docker.internal",
                 "    - openviking",
                 "memory:",
-                "  enabled: true",
+                "  enabled: false",
                 "  provider: openviking",
                 "  capture:",
                 "    mode: selective",

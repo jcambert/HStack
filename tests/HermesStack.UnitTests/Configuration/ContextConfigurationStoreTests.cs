@@ -16,7 +16,7 @@ public sealed class ContextConfigurationStoreTests
             var store = new HStackConfigStore(dataRoot);
 
             var defaults = await store.GetAsync("alpha");
-            Assert.True(defaults.Enabled);
+            Assert.False(defaults.Enabled);
             Assert.Equal("openviking", defaults.ProviderId);
             Assert.Equal(ContextCaptureMode.Selective, defaults.CaptureMode);
             Assert.Equal(12000, defaults.EffectiveBudget.MaxTokens);
