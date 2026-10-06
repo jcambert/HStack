@@ -3,6 +3,7 @@ using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
 using HermesStack.Application.Network;
+using HermesStack.Domain.Context;
 using HermesStack.Docker.Security;
 using Spectre.Console;
 
@@ -15,7 +16,8 @@ internal sealed class SecurityCliService(
     SecurityInspectionService evaluator,
     ISecretPolicyStore secretPolicies,
     ITokenOptimizationStore tokenStore,
-    IProxyConfigurationStore proxyStore)
+    IProxyConfigurationStore proxyStore,
+    IContextConfigurationStore contextStore)
 {
     public async Task<int> RunAsync(string[] args)
     {
@@ -51,6 +53,7 @@ internal sealed class SecurityCliService(
                 new[] { proxy.Http, proxy.Https }
                     .Where(static value => !string.IsNullOrWhiteSpace(value)))
             : "-";
+        var contextConfiguration = await contextStore.GetAsync(project.Id);
 
         var summary = new Table().AddColumn("Property").AddColumn("Value");
         summary.AddRow("Security score", result.Score.ToString());
@@ -72,11 +75,27 @@ internal sealed class SecurityCliService(
         summary.AddRow("Token optimizer hooks", Markup.Escape(tokenHooks));
         summary.AddRow("Proxy endpoints", Markup.Escape(proxyEndpoints));
         summary.AddRow(
+            "Context provider endpoints",
+            contextConfiguration.Enabled ? "http://openviking:1933 via hstack-context" : "disabled");
+        summary.AddRow(
+            "Context scopes",
+            contextConfiguration.Enabled
+                ? "project=user private; agent=peer; shared=restricted ACL; global=explicit shared"
+                : "-");
+        summary.AddRow(
+            "Shared namespaces",
+            contextConfiguration.Enabled ? "explicit hstack memory share only" : "-");
+        summary.AddRow(
+            "Memory write permissions",
+            contextConfiguration.Enabled ? "dedicated project user; shared ACL only" : "-");
+        summary.AddRow(
             "Unexpected prompt/content logging",
-            tokenConfiguration.EffectiveProviders.Any(value =>
-                string.Equals(value.ProviderId, "rtk", StringComparison.OrdinalIgnoreCase))
-                ? "blocked: RTK recall disabled; tracking DB on /tmp tmpfs"
-                : "none configured");
+            contextConfiguration.Enabled
+                ? $"OpenViking capture={contextConfiguration.CaptureMode.ToString().ToLowerInvariant()}; durable writes pass secret filter"
+                : tokenConfiguration.EffectiveProviders.Any(value =>
+                    string.Equals(value.ProviderId, "rtk", StringComparison.OrdinalIgnoreCase))
+                    ? "blocked: RTK recall disabled; tracking DB on /tmp tmpfs"
+                    : "none configured");
         AnsiConsole.Write(summary);
 
         var mounts = new Table()

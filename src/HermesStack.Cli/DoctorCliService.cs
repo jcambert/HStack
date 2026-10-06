@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using HermesStack.Application.Abstractions;
 using HermesStack.Application.Network;
+using HermesStack.Application.Context;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
@@ -24,7 +25,8 @@ internal sealed class DoctorCliService(
     DockerWorkspaceSecurityInspector securityInspector,
     SecurityInspectionService securityEvaluator,
     ISecretPolicyStore secretPolicies,
-    TokenOptimizationService tokenOptimization)
+    TokenOptimizationService tokenOptimization,
+    ContextService contextService)
 {
     public async Task<int> RunAsync(string[] args)
     {
@@ -33,7 +35,8 @@ internal sealed class DoctorCliService(
         var certificatesOnly = args.Contains("--certificates", StringComparer.Ordinal);
         var securityOnly = args.Contains("--security", StringComparer.Ordinal);
         var tokensOnly = args.Contains("--tokens", StringComparer.Ordinal);
-        var targeted = networkOnly || certificatesOnly || securityOnly || tokensOnly;
+        var memoryOnly = args.Contains("--memory", StringComparer.Ordinal);
+        var targeted = networkOnly || certificatesOnly || securityOnly || tokensOnly || memoryOnly;
         var checks = new List<DoctorCheck>();
 
         if (!targeted)
@@ -126,6 +129,12 @@ internal sealed class DoctorCliService(
                     }
                 }
             }
+        }
+
+
+        if (!targeted || memoryOnly)
+        {
+            await AddMemoryChecksAsync(projectId, checks);
         }
 
         Render(checks);
@@ -370,6 +379,44 @@ internal sealed class DoctorCliService(
             checks.Add(new DoctorCheck(
                 "TOKENS",
                 projectId,
+                DoctorStatus.Fail,
+                exception.Message));
+        }
+    }
+
+    private async Task AddMemoryChecksAsync(
+        string? projectId,
+        List<DoctorCheck> checks)
+    {
+        try
+        {
+            var results = await contextService.DoctorAsync(projectId);
+            foreach (var item in results)
+            {
+                checks.Add(new DoctorCheck(
+                    "MEMORY",
+                    projectId is null ? "OpenViking" : $"{projectId} / OpenViking",
+                    item.IsAvailable ? DoctorStatus.Pass : DoctorStatus.Warn,
+                    $"{item.Version ?? "-"}: {item.Details ?? "no details"}"));
+            }
+
+            if (projectId is not null)
+            {
+                var configuration = await contextService.GetConfigurationAsync(projectId);
+                checks.Add(new DoctorCheck(
+                    "MEMORY",
+                    $"{projectId} policy",
+                    DoctorStatus.Pass,
+                    configuration.Enabled
+                        ? $"provider={configuration.ProviderId}; capture={configuration.CaptureMode.ToString().ToLowerInvariant()}; budget={configuration.EffectiveBudget.MaxTokens}"
+                        : "disabled"));
+            }
+        }
+        catch (Exception exception)
+        {
+            checks.Add(new DoctorCheck(
+                "MEMORY",
+                projectId ?? "OpenViking",
                 DoctorStatus.Fail,
                 exception.Message));
         }
