@@ -2,11 +2,13 @@ using HermesStack.Application.Abstractions;
 using HermesStack.Application.Agents;
 using HermesStack.Application.Context;
 using HermesStack.Application.Integrations;
+using HermesStack.Application.Network;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
 using HermesStack.Application.Sessions;
 using HermesStack.Application.Tokens;
+using HermesStack.Application.Updates;
 using HermesStack.Docker.Compose;
 using HermesStack.Docker.Context;
 using HermesStack.Docker.Security;
@@ -20,7 +22,9 @@ using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
 using HermesStack.Infrastructure.Security;
 using HermesStack.Infrastructure.Tokens;
+using HermesStack.Infrastructure.Updates;
 using Spectre.Console;
+using System.Net;
 using System.Security.Cryptography;
 
 return await HStackCli.RunAsync(args);
@@ -182,6 +186,7 @@ internal static class HStackCli
                 "memory" => await memoryCli.RunAsync(args[1..]),
                 "context" => await contextCli.RunAsync(args[1..]),
                 "doctor" => await doctorCli.RunAsync(args[1..]),
+                "update" => await UpdateAsync(args[1..], toolchain, configStore),
                 "integrations" => Integrations(args[1..], integrations),
                 "version" or "--version" or "-v" => ShowVersion(toolchain.WorkspaceVersion),
                 "help" or "--help" or "-h" => ShowHelp(),
@@ -735,6 +740,38 @@ internal static class HStackCli
             false)
     ]);
 
+    private static async Task<int> UpdateAsync(
+        string[] args,
+        ToolchainVersions toolchain,
+        HStackConfigStore configStore)
+    {
+        var proxy = ProxyConfigurationPolicy.ValidateAndNormalize(
+            await configStore.GetAsync());
+
+        using var handler = new HttpClientHandler();
+        if (proxy.Enabled)
+        {
+            var endpoint = proxy.Https ?? proxy.Http;
+            if (!string.IsNullOrWhiteSpace(endpoint))
+            {
+                handler.Proxy = new WebProxy(endpoint);
+                handler.UseProxy = true;
+            }
+        }
+
+        using var client = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
+        var lockService = new ToolchainLockService();
+        var provider = new ToolchainUpdateMetadataProvider(client, lockService);
+        var service = new UpdateCheckService(provider);
+        var cli = new HermesStack.Cli.UpdateCliService(
+            service,
+            ToolchainUpdateMetadataProvider.ToManagedComponents(toolchain));
+        return await cli.RunAsync(args);
+    }
+
     private static string? GetOption(string[] args, string name)
     {
         var index = Array.IndexOf(args, name);
@@ -809,6 +846,7 @@ internal static class HStackCli
   hstack context explain <project> [[--query <query>]] [[--agent <agent>]]
 
   hstack doctor [[project]] [[--network|--certificates|--security|--tokens|--memory]]
+  hstack update check
   hstack integrations list
   hstack version
 """);
