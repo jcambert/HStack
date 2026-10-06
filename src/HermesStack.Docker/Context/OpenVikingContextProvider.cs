@@ -92,6 +92,10 @@ public sealed class OpenVikingContextProvider(
         var connection = await manager.EnsureProjectAsync(request.ProjectId, cancellationToken);
         using var client = CreateClient(connection.HostEndpoint, connection.ApiKey);
         var uri = scopeMapper.GetWriteUri(request);
+        if (request.Scope == ContextScope.Shared)
+        {
+            await EnsureRestrictedSharedNamespaceAsync(uri, cancellationToken);
+        }
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/content/write",
@@ -232,6 +236,47 @@ public sealed class OpenVikingContextProvider(
             },
             cancellationToken);
         await EnsureSuccessAsync(importResponse, "import project context", cancellationToken);
+    }
+
+    private async Task EnsureRestrictedSharedNamespaceAsync(
+        string itemUri,
+        CancellationToken cancellationToken)
+    {
+        const string prefix = "viking://resources/hstack-shared/";
+        if (!itemUri.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Shared context target is outside the HermesStack shared root.");
+        }
+
+        var relative = itemUri[prefix.Length..].Trim('/');
+        var separator = relative.IndexOf('/');
+        if (separator <= 0)
+        {
+            throw new InvalidOperationException(
+                "Shared context writes require an existing explicit namespace.");
+        }
+
+        var namespaceUri = prefix + relative[..separator] + "/";
+        var admin = await manager.GetAdminConnectionAsync(cancellationToken);
+        using var client = CreateClient(admin.HostEndpoint, admin.ApiKey);
+        using var response = await client.GetAsync(
+            $"/api/v1/acl?uri={Uri.EscapeDataString(namespaceUri)}",
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new InvalidOperationException(
+                $"Shared context namespace '{namespaceUri}' does not exist. Create it with 'hstack memory share' first.");
+        }
+
+        await EnsureSuccessAsync(response, "inspect shared context ACL", cancellationToken);
+        using var json = await ParseAsync(response, cancellationToken);
+        var mode = FindString(json.RootElement, "acl_mode");
+        if (!string.Equals(mode, "restricted", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Shared context namespace '{namespaceUri}' is not restricted; refusing to write.");
+        }
     }
 
     public string GetSearchRoot(ContextQuery query) => scopeMapper.GetSearchRoot(query);
