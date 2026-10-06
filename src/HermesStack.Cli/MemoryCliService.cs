@@ -22,7 +22,7 @@ internal sealed class MemoryCliService(
         if (args.Length == 0)
         {
             throw new ArgumentException(
-                "Usage: hstack memory status|providers|enable|disable|setup|stop|inspect|search|scopes|doctor|write|share|export|import|integrate ...");
+                "Usage: hstack memory status|providers|enable|disable|setup|stop|inspect|search|scopes|doctor|write|share|export|import|clear|integrate ...");
         }
 
         return args[0] switch
@@ -41,6 +41,7 @@ internal sealed class MemoryCliService(
             "share" => await ShareAsync(args[1..]),
             "export" => await ExportAsync(args[1..]),
             "import" => await ImportAsync(args[1..]),
+            "clear" => await ClearAsync(args[1..]),
             "integrate" => await IntegrateAsync(args[1..]),
             _ => throw new ArgumentException($"Unknown memory command '{args[0]}'.")
         };
@@ -359,6 +360,28 @@ internal sealed class MemoryCliService(
         _ = await projects.GetRequiredAsync(args[0]);
         await context.ImportAsync(args[0], args[1]);
         AnsiConsole.MarkupLine("[green]✓[/] Memory imported.");
+        return 0;
+    }
+
+    private async Task<int> ClearAsync(string[] args)
+    {
+        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "--yes"))
+        {
+            throw new ArgumentException("Usage: hstack memory clear <project> [--yes]");
+        }
+
+        var project = await projects.GetRequiredAsync(args[0]);
+        if (!args.Contains("--yes", StringComparer.Ordinal) &&
+            !AnsiConsole.Confirm(
+                $"Delete all private OpenViking memories for [bold]{Markup.Escape(project.Id)}[/]? Shared namespaces are not deleted."))
+        {
+            AnsiConsole.MarkupLine("[yellow]Memory clear cancelled.[/]");
+            return 1;
+        }
+
+        await context.ClearAsync(project.Id);
+        AnsiConsole.MarkupLine(
+            $"[green]✓[/] Private memory cleared for {Markup.Escape(project.Id)}. Shared namespaces were preserved.");
         return 0;
     }
 
