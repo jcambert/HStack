@@ -32,10 +32,10 @@
 - US-1405 Display evidence-qualified token gains per project.
 - US-1406 Diagnose token optimizer health and privacy posture.
 
-## In Progress — M6 Shared Context
+## Done — M6 Shared Context
 
-- PBI-1501..1509: OpenViking provider, project identities, shared ACL namespaces, agent integrations, budgets, secret filtering, observability and export/import.
-- Release blockers: provider-native project isolation, no root/admin key in workspace, M6 CI gate.
+- PBI-1501..1509 completed: provider abstraction, pinned OpenViking deployment, project identities, restricted shared namespaces, first-party agent integrations, context budgets, secret filtering, observability, export/import and confirmed memory clear.
+- Security completion: account ACL enforcement is fail-closed, private project credentials are isolated, shared writes require an explicit restricted namespace, and root/admin credentials never enter workspaces.
 
 ## Later
 
