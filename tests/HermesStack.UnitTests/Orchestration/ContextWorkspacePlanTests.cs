@@ -22,6 +22,8 @@ public sealed class ContextWorkspacePlanTests
             var dataRoot = new DefaultDataRootProvider(Path.Combine(root, "home"));
             await new HStackInitializer(dataRoot).InitializeAsync();
             var config = new HStackConfigStore(dataRoot);
+            var context = await config.GetAsync("demo");
+            await config.SaveAsync(context with { Enabled = true });
             var builder = new WorkspaceDeploymentPlanBuilder(
                 dataRoot,
                 new HostMountValidator(new HostMountPolicy()),
