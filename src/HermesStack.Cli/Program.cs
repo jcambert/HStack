@@ -796,6 +796,7 @@ internal static class HStackCli
   hstack memory share <project> <namespace> --with <project,...> [--write]
   hstack memory export <project> [output.ovpack]
   hstack memory import <project> <input.ovpack>
+  hstack memory clear <project> [--yes]
   hstack memory integrate <project> --agent claude|codex|hermes|opencode|all
   hstack context explain <project> [--query <query>] [--agent <agent>]
 
