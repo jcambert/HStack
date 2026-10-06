@@ -28,9 +28,12 @@ mkdir -p "$project_a" "$project_b"
 printf 'secret-a\n' > "$project_a/secret-a.txt"
 printf 'secret-b\n' > "$project_b/secret-b.txt"
 
-# The M3 gate that runs immediately before this one builds the pinned 0.5.0
-# workspace image. Keep this gate focused on M4 behavior.
-docker image inspect hstack/workspace-full:0.5.0 >/dev/null
+# The M3 gate that runs immediately before this one builds the workspace
+# image pinned by toolchain.lock.yaml. Keep this gate focused on M4 behavior
+# without hard-coding a previous milestone version.
+workspace_version="$(awk '$1 == "workspace:" { in_workspace=1; next } in_workspace && $1 == "version:" { gsub(/"/, "", $2); print $2; exit }' "$repo_root/toolchain.lock.yaml")"
+test -n "$workspace_version"
+docker image inspect "hstack/workspace-full:$workspace_version" >/dev/null
 
 run_hstack project add project-a "$project_a"
 run_hstack project add project-b "$project_b"

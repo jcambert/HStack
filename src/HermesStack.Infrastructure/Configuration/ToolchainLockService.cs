@@ -21,7 +21,14 @@ public sealed record ToolchainVersions(
     string RtkSha256Arm64,
     string CavemanVersion,
     string CavemanReleaseTag,
-    string CavemanCommit);
+    string CavemanCommit,
+    string OpenVikingVersion,
+    string OpenVikingReleaseTag,
+    string OpenVikingImageDigest)
+{
+    public string OpenVikingImage =>
+        $"ghcr.io/volcengine/openviking:v{OpenVikingVersion}@sha256:{OpenVikingImageDigest}";
+}
 
 public sealed class ToolchainLockService
 {
@@ -63,7 +70,10 @@ public sealed class ToolchainLockService
             RequireDigest(document.Tools?.Rtk?.Sha256Arm64, "tools.rtk.sha256Arm64"),
             Require(document.Tools?.Caveman?.Version, "tools.caveman.version"),
             Require(document.Tools?.Caveman?.ReleaseTag, "tools.caveman.releaseTag"),
-            Require(document.Tools?.Caveman?.Commit, "tools.caveman.commit"));
+            Require(document.Tools?.Caveman?.Commit, "tools.caveman.commit"),
+            Require(document.Tools?.OpenViking?.Version, "tools.openViking.version"),
+            Require(document.Tools?.OpenViking?.ReleaseTag, "tools.openViking.releaseTag"),
+            RequireDigest(document.Tools?.OpenViking?.ImageDigest, "tools.openViking.imageDigest"));
     }
 
     private static string Require(string? value, string key)
@@ -110,6 +120,7 @@ public sealed class ToolchainLockService
         public ToolEntry? OpenCode { get; set; }
         public ToolEntry? Rtk { get; set; }
         public ToolEntry? Caveman { get; set; }
+        public ToolEntry? OpenViking { get; set; }
     }
 
     public sealed class ToolEntry
@@ -119,5 +130,6 @@ public sealed class ToolchainLockService
         public string? Commit { get; set; }
         public string? Sha256X64 { get; set; }
         public string? Sha256Arm64 { get; set; }
+        public string? ImageDigest { get; set; }
     }
 }

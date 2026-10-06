@@ -1,3 +1,4 @@
+using HermesStack.Domain.Context;
 using HermesStack.Domain.Projects;
 
 namespace HermesStack.Domain.Orchestration;
@@ -12,7 +13,8 @@ public sealed record WorkspaceDeploymentPlan(
     IReadOnlyDictionary<string, string> Environment,
     IReadOnlyList<ProjectPort> Ports,
     WorkspaceSecurityPolicy Security,
-    string ProjectDataRoot);
+    string ProjectDataRoot,
+    ContextConfiguration? Context = null);
 
 public sealed record WorkspaceMount(string Source, string Target, bool ReadOnly, string Purpose);
 

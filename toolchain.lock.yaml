@@ -1,6 +1,6 @@
 schemaVersion: 1
 workspace:
-  version: "0.5.0"
+  version: "0.6.0"
 runtime:
   node:
     version: "24.21.0"
@@ -42,7 +42,9 @@ tools:
     version: "2.7.0"
     releaseTag: "v2.7.0"
     commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
-    source: "JuliusBrussee/caveman signed release source"
+    source: "JuliusBrussee/caveman signed release"
   openViking:
-    version: "deferred-to-M6"
-    source: "volcengine/OpenViking"
+    version: "0.4.23"
+    releaseTag: "v0.4.23"
+    imageDigest: "fb4cd789fd3303509edd1c10437ff63d4fab56b622494ac621f1fda042540ed4"
+    source: "ghcr.io/volcengine/openviking official multi-arch image"

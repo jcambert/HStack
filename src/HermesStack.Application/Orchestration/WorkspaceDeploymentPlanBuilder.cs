@@ -1,6 +1,7 @@
 using HermesStack.Application.Abstractions;
 using HermesStack.Application.Network;
 using HermesStack.Application.Security;
+using HermesStack.Domain.Context;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Domain.Projects;
 
@@ -11,8 +12,9 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     HostMountValidator mountValidator,
     ICertificateBundleService certificateBundleService,
     string baseComposeFile,
-    string workspaceImage = "hstack/workspace-full:0.5.0",
-    IProxyConfigurationStore? proxyConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
+    string workspaceImage = "hstack/workspace-full:0.6.0",
+    IProxyConfigurationStore? proxyConfigurationStore = null,
+    IContextConfigurationStore? contextConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
 {
     public async Task<WorkspaceDeploymentPlan> BuildAsync(
         ProjectDefinition project,
@@ -31,25 +33,25 @@ public sealed class WorkspaceDeploymentPlanBuilder(
                 $"State scope '{project.StateScope}' is not supported. Project agent state is isolated by default.");
         }
 
+        var context = contextConfigurationStore is null
+            ? new ContextConfiguration(project.Id, Enabled: false)
+            : await contextConfigurationStore.GetAsync(project.Id, cancellationToken);
+
         var projectDataRoot = dataRoot.GetProjectDataRoot(project.Id);
         var projectRuntimeRoot = dataRoot.GetProjectRuntimeRoot(project.Id);
-
         var home = Path.Combine(projectDataRoot, "home");
         var claude = Path.Combine(projectDataRoot, "claude");
         var codex = Path.Combine(projectDataRoot, "codex");
         var hermes = Path.Combine(projectDataRoot, "hermes");
         var openCodeConfig = Path.Combine(projectDataRoot, "opencode", "config");
         var openCodeData = Path.Combine(projectDataRoot, "opencode", "data");
+        var openViking = Path.Combine(projectDataRoot, "openviking");
 
         foreach (var directory in new[]
         {
             projectDataRoot,
             projectRuntimeRoot,
             home,
-            // Pre-create XDG parents in the project-owned HOME before Docker
-            // attaches nested OpenCode binds. Otherwise Docker creates those
-            // intermediate directories as root on the host bind, preventing
-            // the non-root workspace user from creating ~/.local/state.
             Path.Combine(home, ".config"),
             Path.Combine(home, ".config", "herdr"),
             Path.Combine(home, ".local"),
@@ -60,7 +62,8 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             codex,
             hermes,
             openCodeConfig,
-            openCodeData
+            openCodeData,
+            openViking
         })
         {
             Directory.CreateDirectory(directory);
@@ -77,6 +80,15 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             new(openCodeData, "/home/hstack/.local/share/opencode", false, "agent-state:opencode-data")
         };
 
+        if (context.Enabled)
+        {
+            mounts.Add(new WorkspaceMount(
+                openViking,
+                "/home/hstack/.openviking",
+                false,
+                "context-client-state:openviking"));
+        }
+
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["HOME"] = "/home/hstack",
@@ -92,6 +104,12 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             ["RTK_TELEMETRY_DISABLED"] = "1",
             ["RTK_RECALL"] = "0"
         };
+
+        if (context.Enabled)
+        {
+            environment["OPENVIKING_URL"] = "http://openviking:1933";
+            environment["OPENVIKING_ENDPOINT"] = "http://openviking:1933";
+        }
 
         if (proxyConfigurationStore is not null)
         {
@@ -111,7 +129,11 @@ public sealed class WorkspaceDeploymentPlanBuilder(
                     environment["https_proxy"] = proxy.Https;
                 }
 
-                var noProxy = string.Join(",", proxy.EffectiveNoProxy);
+                var noProxy = string.Join(
+                    ",",
+                    proxy.EffectiveNoProxy
+                        .Append("openviking")
+                        .Distinct(StringComparer.OrdinalIgnoreCase));
                 environment["NO_PROXY"] = noProxy;
                 environment["no_proxy"] = noProxy;
             }
@@ -159,6 +181,7 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             environment,
             project.EffectivePorts,
             new WorkspaceSecurityPolicy(),
-            projectDataRoot);
+            projectDataRoot,
+            context);
     }
 }

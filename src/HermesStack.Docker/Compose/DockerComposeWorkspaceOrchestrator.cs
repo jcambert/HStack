@@ -1,11 +1,13 @@
 using HermesStack.Application.Abstractions;
 using HermesStack.Domain.Orchestration;
+using HermesStack.Docker.Context;
 
 namespace HermesStack.Docker.Compose;
 
 public sealed class DockerComposeWorkspaceOrchestrator(
     IProcessRunner processRunner,
-    ComposeOverrideWriter overrideWriter) : IWorkspaceOrchestrator
+    ComposeOverrideWriter overrideWriter,
+    OpenVikingServiceManager? contextManager = null) : IWorkspaceOrchestrator
 {
     public string Id => "compose";
     public string DisplayName => "Docker Compose";
@@ -44,6 +46,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
         WorkspaceDeploymentPlan plan,
         CancellationToken cancellationToken = default)
     {
+        await EnsureContextAsync(plan, cancellationToken);
         await overrideWriter.WriteAsync(plan, cancellationToken);
         _ = await processRunner.RunAsync(
             new ProcessRequest("docker", ComposeArgs(plan, "up", "-d"), ThrowOnError: true),
@@ -68,6 +71,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
         WorkspaceDeploymentPlan plan,
         CancellationToken cancellationToken = default)
     {
+        await EnsureContextAsync(plan, cancellationToken);
         await overrideWriter.WriteAsync(plan, cancellationToken);
         _ = await processRunner.RunAsync(
             new ProcessRequest("docker", ComposeArgs(plan, "restart", "workspace"), ThrowOnError: true),
@@ -179,6 +183,24 @@ public sealed class DockerComposeWorkspaceOrchestrator(
             new ProcessRequest("docker", args, CaptureOutput: false),
             cancellationToken);
         return result.ExitCode;
+    }
+
+    private async Task EnsureContextAsync(
+        WorkspaceDeploymentPlan plan,
+        CancellationToken cancellationToken)
+    {
+        if (plan.Context?.Enabled != true)
+        {
+            return;
+        }
+
+        if (contextManager is null)
+        {
+            throw new InvalidOperationException(
+                "OpenViking context is enabled but no context service manager is registered.");
+        }
+
+        _ = await contextManager.EnsureProjectAsync(plan.Project.Id, cancellationToken);
     }
 
     private static IReadOnlyDictionary<string, string?> ProcessEnvironment(

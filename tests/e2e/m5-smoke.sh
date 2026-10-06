@@ -23,8 +23,11 @@ trap cleanup EXIT
 mkdir -p "$project"
 printf 'm5\n' > "$project/marker.txt"
 
-# M3 builds the current pinned image and M4 already validates M1-M4 behavior.
-docker image inspect hstack/workspace-full:0.5.0 >/dev/null
+# M3 builds the image pinned by toolchain.lock.yaml and M4 already validates
+# M1-M4 behavior. Do not hard-code a previous milestone version here.
+workspace_version="$(awk '$1 == "workspace:" { in_workspace=1; next } in_workspace && $1 == "version:" { gsub(/"/, "", $2); print $2; exit }' "$repo_root/toolchain.lock.yaml")"
+test -n "$workspace_version"
+docker image inspect "hstack/workspace-full:$workspace_version" >/dev/null
 
 run_hstack project add project-a "$project"
 run_hstack up project-a

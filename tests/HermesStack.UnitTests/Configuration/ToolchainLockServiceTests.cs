@@ -5,7 +5,7 @@ namespace HermesStack.UnitTests.Configuration;
 public sealed class ToolchainLockServiceTests
 {
     [Fact]
-    public void Exact_m5_versions_are_loaded()
+    public void Exact_m6_versions_are_loaded()
     {
         var root = Path.Combine(Path.GetTempPath(), "hstack-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -16,7 +16,7 @@ public sealed class ToolchainLockServiceTests
             File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.5.0"
+                  version: "0.6.0"
                 tools:
                   herdr:
                     version: "0.9.3"
@@ -42,11 +42,15 @@ public sealed class ToolchainLockServiceTests
                     version: "2.7.0"
                     releaseTag: "v2.7.0"
                     commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
+                  openViking:
+                    version: "0.4.23"
+                    releaseTag: "v0.4.23"
+                    imageDigest: "fb4cd789fd3303509edd1c10437ff63d4fab56b622494ac621f1fda042540ed4"
                 """);
 
             var value = new ToolchainLockService().Load(path);
 
-            Assert.Equal("0.5.0", value.WorkspaceVersion);
+            Assert.Equal("0.6.0", value.WorkspaceVersion);
             Assert.Equal("0.9.3", value.HerdrVersion);
             Assert.Equal("v0.9.3", value.HerdrReleaseTag);
             Assert.Equal("18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7", value.HerdrSha256X64);
@@ -64,6 +68,11 @@ public sealed class ToolchainLockServiceTests
             Assert.Equal("2.7.0", value.CavemanVersion);
             Assert.Equal("v2.7.0", value.CavemanReleaseTag);
             Assert.Equal("8b0c1d3699b8d83e87fe4605b378da20c41555e0", value.CavemanCommit);
+            Assert.Equal("0.4.23", value.OpenVikingVersion);
+            Assert.Equal("v0.4.23", value.OpenVikingReleaseTag);
+            Assert.Equal(
+                "fb4cd789fd3303509edd1c10437ff63d4fab56b622494ac621f1fda042540ed4",
+                value.OpenVikingImageDigest);
         }
         finally
         {
@@ -83,7 +92,7 @@ public sealed class ToolchainLockServiceTests
             File.WriteAllText(path, """
                 schemaVersion: 1
                 workspace:
-                  version: "0.5.0"
+                  version: "0.6.0"
                 tools:
                   herdr:
                     version: "deferred-to-M3"
@@ -109,6 +118,10 @@ public sealed class ToolchainLockServiceTests
                     version: "2.7.0"
                     releaseTag: "v2.7.0"
                     commit: "8b0c1d3699b8d83e87fe4605b378da20c41555e0"
+                  openViking:
+                    version: "0.4.23"
+                    releaseTag: "v0.4.23"
+                    imageDigest: "fb4cd789fd3303509edd1c10437ff63d4fab56b622494ac621f1fda042540ed4"
                 """);
 
             Assert.Throws<InvalidDataException>(() => new ToolchainLockService().Load(path));

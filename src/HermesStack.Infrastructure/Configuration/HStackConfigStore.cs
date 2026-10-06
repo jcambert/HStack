@@ -1,11 +1,14 @@
 using HermesStack.Application.Abstractions;
+using HermesStack.Domain.Context;
 using HermesStack.Domain.Network;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace HermesStack.Infrastructure.Configuration;
 
-public sealed class HStackConfigStore(IDataRootProvider dataRoot) : IProxyConfigurationStore
+public sealed class HStackConfigStore(IDataRootProvider dataRoot) :
+    IProxyConfigurationStore,
+    IContextConfigurationStore
 {
     private readonly ISerializer _serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -40,11 +43,55 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) : IProxyConfig
             Https = configuration.Https,
             NoProxy = configuration.EffectiveNoProxy.ToList()
         };
+        await SaveDocumentAsync(document, cancellationToken);
+    }
 
-        Directory.CreateDirectory(dataRoot.ConfigDirectory);
-        var temp = dataRoot.MainConfigFile + ".tmp";
-        await File.WriteAllTextAsync(temp, _serializer.Serialize(document), cancellationToken);
-        File.Move(temp, dataRoot.MainConfigFile, true);
+    public async Task<ContextConfiguration> GetAsync(
+        string projectId,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await LoadAsync(cancellationToken);
+        var memory = document.Memory ?? new MemoryDto();
+        memory.Projects ??= new Dictionary<string, ProjectMemoryDto>(StringComparer.OrdinalIgnoreCase);
+        memory.Projects.TryGetValue(projectId, out var project);
+
+        var globalBudget = memory.ContextBudget ?? new ContextBudgetDto();
+        var projectBudget = project?.ContextBudget;
+        return new ContextConfiguration(
+            projectId,
+            project?.Enabled ?? memory.Enabled,
+            project?.Provider ?? memory.Provider ?? "openviking",
+            ParseCapture(project?.CaptureMode ?? memory.Capture?.Mode ?? "selective"),
+            ParseScope(project?.DefaultScope ?? memory.DefaultScope ?? "project"),
+            new ContextBudgetOptions(
+                projectBudget?.MaxTokens ?? globalBudget.MaxTokens,
+                projectBudget?.MaxItems ?? globalBudget.MaxItems,
+                projectBudget?.PreferSummary ?? globalBudget.PreferSummary,
+                projectBudget?.ExpandOnDemand ?? globalBudget.ExpandOnDemand));
+    }
+
+    public async Task SaveAsync(
+        ContextConfiguration configuration,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await LoadAsync(cancellationToken);
+        document.Memory ??= new MemoryDto();
+        document.Memory.Projects ??= new Dictionary<string, ProjectMemoryDto>(StringComparer.OrdinalIgnoreCase);
+        document.Memory.Projects[configuration.ProjectId] = new ProjectMemoryDto
+        {
+            Enabled = configuration.Enabled,
+            Provider = configuration.ProviderId,
+            CaptureMode = configuration.CaptureMode.ToString().ToLowerInvariant(),
+            DefaultScope = configuration.DefaultScope.ToString().ToLowerInvariant(),
+            ContextBudget = new ContextBudgetDto
+            {
+                MaxTokens = configuration.EffectiveBudget.MaxTokens,
+                MaxItems = configuration.EffectiveBudget.MaxItems,
+                PreferSummary = configuration.EffectiveBudget.PreferSummary,
+                ExpandOnDemand = configuration.EffectiveBudget.ExpandOnDemand
+            }
+        };
+        await SaveDocumentAsync(document, cancellationToken);
     }
 
     private async Task<HStackConfigDocument> LoadAsync(CancellationToken cancellationToken)
@@ -68,8 +115,30 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) : IProxyConfig
         document.Network ??= new NetworkDto();
         document.Defaults ??= new DefaultsDto();
         document.Proxy ??= new ProxyDto();
+        document.Memory ??= new MemoryDto();
+        document.Memory.Projects ??= new Dictionary<string, ProjectMemoryDto>(StringComparer.OrdinalIgnoreCase);
         return document;
     }
+
+    private async Task SaveDocumentAsync(
+        HStackConfigDocument document,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(dataRoot.ConfigDirectory);
+        var temp = dataRoot.MainConfigFile + ".tmp";
+        await File.WriteAllTextAsync(temp, _serializer.Serialize(document), cancellationToken);
+        File.Move(temp, dataRoot.MainConfigFile, true);
+    }
+
+    private static ContextCaptureMode ParseCapture(string value) =>
+        Enum.TryParse<ContextCaptureMode>(value, true, out var result)
+            ? result
+            : ContextCaptureMode.Selective;
+
+    private static ContextScope ParseScope(string value) =>
+        Enum.TryParse<ContextScope>(value, true, out var result)
+            ? result
+            : ContextScope.Project;
 
     public sealed class HStackConfigDocument
     {
@@ -78,6 +147,7 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) : IProxyConfig
         public NetworkDto? Network { get; set; } = new();
         public DefaultsDto? Defaults { get; set; } = new();
         public ProxyDto? Proxy { get; set; } = new();
+        public MemoryDto? Memory { get; set; } = new();
     }
 
     public sealed class OrchestrationDto
@@ -120,5 +190,38 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) : IProxyConfig
         public string? Http { get; set; }
         public string? Https { get; set; }
         public List<string>? NoProxy { get; set; } = [];
+    }
+
+    public sealed class MemoryDto
+    {
+        public bool Enabled { get; set; } = false;
+        public string? Provider { get; set; } = "openviking";
+        public CaptureDto? Capture { get; set; } = new();
+        public ContextBudgetDto? ContextBudget { get; set; } = new();
+        public string? DefaultScope { get; set; } = "project";
+        public Dictionary<string, ProjectMemoryDto>? Projects { get; set; } =
+            new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public sealed class CaptureDto
+    {
+        public string Mode { get; set; } = "selective";
+    }
+
+    public sealed class ProjectMemoryDto
+    {
+        public bool? Enabled { get; set; }
+        public string? Provider { get; set; }
+        public string? CaptureMode { get; set; }
+        public string? DefaultScope { get; set; }
+        public ContextBudgetDto? ContextBudget { get; set; }
+    }
+
+    public sealed class ContextBudgetDto
+    {
+        public int MaxTokens { get; set; } = 12000;
+        public int MaxItems { get; set; } = 20;
+        public bool PreferSummary { get; set; } = true;
+        public bool ExpandOnDemand { get; set; } = true;
     }
 }
