@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE='ghcr.io/volcengine/openviking@sha256:0753c2dddcffdef39b7cf2c0e54a74f8a13d7f3d7524b773096cc8380d463db9'
+IMAGE='ghcr.io/volcengine/openviking:v0.4.23@sha256:fb4cd789fd3303509edd1c10437ff63d4fab56b622494ac621f1fda042540ed4'
 
 echo '[M6] Verify pinned OpenViking release image'
 docker pull "$IMAGE"
