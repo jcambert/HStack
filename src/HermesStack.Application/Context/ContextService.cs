@@ -136,6 +136,15 @@ public sealed class ContextService(
             .ImportAsync(projectId, inputPath, cancellationToken);
     }
 
+    public async Task ClearAsync(
+        string projectId,
+        CancellationToken cancellationToken = default)
+    {
+        var configuration = await RequireEnabledAsync(projectId, cancellationToken);
+        await providers.GetRequired(configuration.ProviderId)
+            .ClearAsync(projectId, cancellationToken);
+    }
+
     public Task<ContextRetrievalTrace?> GetLatestTraceAsync(
         string projectId,
         CancellationToken cancellationToken = default) =>
