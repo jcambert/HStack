@@ -20,7 +20,7 @@ public sealed class OpenVikingContextScopeMapper : IContextScopeMapper
     public string GetWriteUri(ContextWriteRequest request)
     {
         var relative = RelativePath(request.Name);
-        if (request.Scope == ContextScope.Shared && !relative.Contains('/', StringComparison.Ordinal))
+        if (request.Scope == ContextScope.Shared && !relative.Contains('/'))
         {
             throw new InvalidOperationException(
                 "Shared context writes must target an explicitly shared namespace using '<namespace>/<item>'.");
