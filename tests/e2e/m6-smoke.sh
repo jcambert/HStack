@@ -25,6 +25,10 @@ grep -q 'redacted-private-key' src/HermesStack.Docker/Context/OpenVikingServiceM
 grep -q 'EnsureAccountAclEnabledAsync' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
 grep -q '/api/v1/admin/accounts/.*configuration' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
 grep -q 'enabled = true' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
+grep -q 'IContextScopePolicy' src/HermesStack.Application/Abstractions/IContextProvider.cs
+grep -q 'ContextScopePolicy' src/HermesStack.Application/Context/ContextService.cs
+grep -q 'ClearAsync' src/HermesStack.Docker/Context/OpenVikingContextProvider.cs
+grep -q 'memory clear' src/HermesStack.Cli/Program.cs
 
 echo '[M6] Verify first-party integrations avoid shell pipelines'
 grep -q 'openviking-install.sh' src/HermesStack.Cli/MemoryCliService.cs
