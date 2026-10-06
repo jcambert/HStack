@@ -320,7 +320,16 @@ public sealed class OpenVikingServiceManager(
             new Dictionary<string, object>
             {
                 ["url"] = WorkspaceEndpoint,
-                ["api_key"] = apiKey
+                ["api_key"] = apiKey,
+                ["plugin"] = new Dictionary<string, object>
+                {
+                    ["captureFilters"] = new[]
+                    {
+                        @"s/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/[redacted-private-key]/g",
+                        @"s/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|xox[baprs]-[A-Za-z0-9-]{8,})\b/[redacted]/gi",
+                        @"s/\b(password|passwd|pwd|access[_ -]?token|refresh[_ -]?token|api[_ -]?key)\s*[:=]\s*[^\s,;]+/$1=[redacted]/gi"
+                    }
+                }
             },
             new JsonSerializerOptions { WriteIndented = true });
 
