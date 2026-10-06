@@ -37,8 +37,16 @@
 - PBI-1501..1509 completed: provider abstraction, pinned OpenViking deployment, project identities, restricted shared namespaces, first-party agent integrations, context budgets, secret filtering, observability, export/import and confirmed memory clear.
 - Security completion: account ACL enforcement is fail-closed, private project credentials are isolated, shared writes require an explicit restricted namespace, and root/admin credentials never enter workspaces.
 
+## In Progress — M7 Operations
+
+- EPIC-016 Update & Toolchain Management — In Progress.
+- US-1601 Check managed updates — Review.
+- EPIC-017 Backup, Restore & Portability — Proposed.
+- EPIC-018 Observability & Metrics — Proposed.
+- EPIC-019 CLI UX & Interactive Dashboard — Proposed.
+- EPIC-020 CI/CD & Distribution — Proposed.
+
 ## Later
 
-- Operations — M7.
 - Aspire Experience — M8.
 - Optional sandbox-provider spikes remain deferred until the native backend is stable.
