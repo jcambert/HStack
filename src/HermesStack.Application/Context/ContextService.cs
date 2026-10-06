@@ -8,8 +8,10 @@ public sealed class ContextService(
     IContextConfigurationStore configurations,
     IContextSecretFilter secretFilter,
     IContextTraceStore traces,
-    ContextBudgetPolicy budgetPolicy)
+    ContextBudgetPolicy budgetPolicy,
+    IContextScopePolicy? scopePolicy = null)
 {
+    private readonly IContextScopePolicy _scopePolicy = scopePolicy ?? new ContextScopePolicy();
     public Task<ContextConfiguration> GetConfigurationAsync(
         string projectId,
         CancellationToken cancellationToken = default) =>
@@ -39,6 +41,7 @@ public sealed class ContextService(
         ContextQuery query,
         CancellationToken cancellationToken = default)
     {
+        _scopePolicy.ValidateQuery(query);
         var configuration = await RequireEnabledAsync(query.ProjectId, cancellationToken);
         var provider = providers.GetRequired(configuration.ProviderId);
         _ = await provider.EnsureProjectAsync(query.ProjectId, cancellationToken);
@@ -84,6 +87,7 @@ public sealed class ContextService(
         ContextWriteRequest request,
         CancellationToken cancellationToken = default)
     {
+        _scopePolicy.ValidateWrite(request);
         var configuration = await RequireEnabledAsync(request.ProjectId, cancellationToken);
         if (configuration.CaptureMode == ContextCaptureMode.Off)
         {
@@ -106,6 +110,7 @@ public sealed class ContextService(
         ContextShareRequest request,
         CancellationToken cancellationToken = default)
     {
+        _scopePolicy.ValidateShare(request);
         var configuration = await RequireEnabledAsync(request.ProjectId, cancellationToken);
         await providers.GetRequired(configuration.ProviderId)
             .ShareAsync(request, cancellationToken);
