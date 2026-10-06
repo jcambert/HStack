@@ -1,5 +1,6 @@
 using HermesStack.Application.Abstractions;
 using HermesStack.Application.Agents;
+using HermesStack.Application.Context;
 using HermesStack.Application.Integrations;
 using HermesStack.Application.Orchestration;
 using HermesStack.Application.Projects;
@@ -9,9 +10,11 @@ using HermesStack.Application.Tokens;
 using HermesStack.Domain.Integrations;
 using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
+using HermesStack.Docker.Context;
 using HermesStack.Docker.Security;
 using HermesStack.Docker.Tokens;
 using HermesStack.Infrastructure.Certificates;
+using HermesStack.Infrastructure.Context;
 using HermesStack.Infrastructure.Configuration;
 using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
@@ -45,16 +48,48 @@ internal static class HStackCli
             var baseCompose = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "compose", "compose.yaml");
             var toolchainPath = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
             var toolchain = new ToolchainLockService().Load(toolchainPath);
+            var openVikingManager = new OpenVikingServiceManager(
+                dataRoot,
+                secretStore,
+                processRunner,
+                toolchain.OpenVikingImage,
+                toolchain.OpenVikingVersion);
             var planBuilder = new WorkspaceDeploymentPlanBuilder(
                 dataRoot,
                 mountValidator,
                 certificateService,
                 baseCompose,
                 $"hstack/workspace-full:{toolchain.WorkspaceVersion}",
+                configStore,
                 configStore);
-            var orchestrator = new DockerComposeWorkspaceOrchestrator(processRunner, new ComposeOverrideWriter());
+            var orchestrator = new DockerComposeWorkspaceOrchestrator(
+                processRunner,
+                new ComposeOverrideWriter(),
+                openVikingManager);
             var integrations = CreateIntegrationRegistry(toolchain);
             var agents = CreateAgentHarnessRegistry(orchestrator);
+            var contextRegistry = new ContextProviderRegistry(
+            [
+                new OpenVikingContextProvider(
+                    openVikingManager,
+                    new OpenVikingContextScopeMapper())
+            ]);
+            var contextService = new ContextService(
+                contextRegistry,
+                configStore,
+                new ContextSecretFilter(redactor),
+                new JsonContextTraceStore(dataRoot),
+                new ContextBudgetPolicy());
+            var memoryCli = new HermesStack.Cli.MemoryCliService(
+                projectService,
+                planBuilder,
+                orchestrator,
+                contextService,
+                contextRegistry,
+                openVikingManager);
+            var contextCli = new HermesStack.Cli.ContextCliService(
+                projectService,
+                contextService);
             var tokenRegistry = new TokenOptimizerRegistry(
             [
                 new RtkTokenOptimizer(orchestrator, toolchain.RtkVersion),
@@ -142,6 +177,8 @@ internal static class HStackCli
                 "secret" => await secretCli.RunAsync(args[1..]),
                 "security" => await securityCli.RunAsync(args[1..]),
                 "token" => await tokenCli.RunAsync(args[1..]),
+                "memory" => await memoryCli.RunAsync(args[1..]),
+                "context" => await contextCli.RunAsync(args[1..]),
                 "doctor" => await doctorCli.RunAsync(args[1..]),
                 "integrations" => Integrations(args[1..], integrations),
                 "version" or "--version" or "-v" => ShowVersion(toolchain.WorkspaceVersion),
@@ -665,9 +702,16 @@ internal static class HStackCli
             new HashSet<IntegrationCapability>
             {
                 IntegrationCapability.SharedMemory,
-                IntegrationCapability.Mcp
+                IntegrationCapability.Mcp,
+                IntegrationCapability.Authentication,
+                IntegrationCapability.ProjectScopedState
             },
-            false),
+            false,
+            "integrate",
+            toolchain.OpenVikingVersion,
+            "Ready",
+            new HashSet<string>(["claude", "codex", "hermes", "opencode"], StringComparer.OrdinalIgnoreCase),
+            "volcengine/OpenViking official v0.4.23 image and first-party agent integrations"),
         new(
             "aspire",
             "Aspire",
@@ -736,7 +780,23 @@ internal static class HStackCli
   hstack token doctor <project>
   hstack token gain <project>
   hstack token stats <project> [--agent <agent>]
-  hstack doctor [project] [--network|--certificates|--security|--tokens]
+
+  hstack memory providers
+  hstack memory status [project]
+  hstack memory enable|disable <project>
+  hstack memory setup
+  hstack memory inspect <project>
+  hstack memory search <project> <query> [--scope project|agent|shared|global]
+  hstack memory scopes [project]
+  hstack memory doctor [project]
+  hstack memory write <project> <name> --content <text> [--scope project|agent|shared]
+  hstack memory share <project> <namespace> --with <project,...> [--write]
+  hstack memory export <project> [output.ovpack]
+  hstack memory import <project> <input.ovpack>
+  hstack memory integrate <project> --agent claude|codex|hermes|opencode|all
+  hstack context explain <project> [--query <query>] [--agent <agent>]
+
+  hstack doctor [project] [--network|--certificates|--security|--tokens|--memory]
   hstack integrations list
   hstack version
 """);

@@ -183,7 +183,7 @@ public sealed class OpenVikingServiceManager(
         else
         {
             await ThrowApiErrorAsync(createResponse, "create OpenViking account", cancellationToken);
-            throw new UnreachableException();
+            throw new InvalidOperationException("OpenViking account provisioning failed.");
         }
 
         await secretStore.SetAsync(reference, new SecretValue(key), cancellationToken);
@@ -229,7 +229,7 @@ public sealed class OpenVikingServiceManager(
         else
         {
             await ThrowApiErrorAsync(createResponse, "register OpenViking project user", cancellationToken);
-            throw new UnreachableException();
+            throw new InvalidOperationException("OpenViking project user provisioning failed.");
         }
 
         await secretStore.SetAsync(reference, new SecretValue(key), cancellationToken);
