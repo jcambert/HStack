@@ -20,6 +20,8 @@ grep -q 'dedicated project user/API key' src/HermesStack.Cli/MemoryCliService.cs
 grep -q 'Global context is denied in M6' src/HermesStack.Application/Context/OpenVikingContextScopeMapper.cs
 grep -q 'acl_mode = "restricted"' src/HermesStack.Docker/Context/OpenVikingContextProvider.cs
 grep -q 'EnsureRestrictedSharedNamespaceAsync' src/HermesStack.Docker/Context/OpenVikingContextProvider.cs
+grep -q 'captureFilters' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
+grep -q 'redacted-private-key' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
 grep -q 'EnsureAccountAclEnabledAsync' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
 grep -q '/api/v1/admin/accounts/.*configuration' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
 grep -q 'enabled = true' src/HermesStack.Docker/Context/OpenVikingServiceManager.cs
