@@ -91,7 +91,7 @@ internal sealed class SecurityCliService(
         summary.AddRow(
             "Unexpected prompt/content logging",
             contextConfiguration.Enabled
-                ? $"OpenViking capture={contextConfiguration.CaptureMode.ToString().ToLowerInvariant()}; durable writes pass secret filter"
+                ? $"OpenViking capture={contextConfiguration.CaptureMode.ToString().ToLowerInvariant()}; hstack writes use IContextSecretFilter; upstream auto-capture uses project captureFilters"
                 : tokenConfiguration.EffectiveProviders.Any(value =>
                     string.Equals(value.ProviderId, "rtk", StringComparison.OrdinalIgnoreCase))
                     ? "blocked: RTK recall disabled; tracking DB on /tmp tmpfs"
