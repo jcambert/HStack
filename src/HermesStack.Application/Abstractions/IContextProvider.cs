@@ -38,6 +38,10 @@ public interface IContextProvider
         string projectId,
         string inputPath,
         CancellationToken cancellationToken = default);
+
+    Task ClearAsync(
+        string projectId,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IContextProviderRegistry
