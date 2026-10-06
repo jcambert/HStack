@@ -73,6 +73,13 @@ public interface IContextTraceStore
         CancellationToken cancellationToken = default);
 }
 
+public interface IContextScopePolicy
+{
+    void ValidateQuery(ContextQuery query);
+    void ValidateWrite(ContextWriteRequest request);
+    void ValidateShare(ContextShareRequest request);
+}
+
 public interface IContextScopeMapper
 {
     string GetSearchRoot(ContextQuery query);
