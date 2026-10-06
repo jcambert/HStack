@@ -283,7 +283,7 @@ internal sealed class MemoryCliService(
         if (args.Length < 2)
         {
             throw new ArgumentException(
-                "Usage: hstack memory write <project> <name> --content <text> [--scope project|agent|shared] [--agent <agent>]");
+                "Usage: hstack memory write <project> <name|namespace/name> --content <text> [--scope project|agent|shared] [--agent <agent>]");
         }
 
         _ = await projects.GetRequiredAsync(args[0]);
