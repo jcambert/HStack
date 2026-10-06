@@ -7,12 +7,12 @@ using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
 using HermesStack.Application.Sessions;
 using HermesStack.Application.Tokens;
-using HermesStack.Domain.Integrations;
-using HermesStack.Domain.Orchestration;
 using HermesStack.Docker.Compose;
 using HermesStack.Docker.Context;
 using HermesStack.Docker.Security;
 using HermesStack.Docker.Tokens;
+using HermesStack.Domain.Integrations;
+using HermesStack.Domain.Orchestration;
 using HermesStack.Infrastructure.Certificates;
 using HermesStack.Infrastructure.Context;
 using HermesStack.Infrastructure.Configuration;
@@ -20,8 +20,8 @@ using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
 using HermesStack.Infrastructure.Security;
 using HermesStack.Infrastructure.Tokens;
-using System.Security.Cryptography;
 using Spectre.Console;
+using System.Security.Cryptography;
 
 return await HStackCli.RunAsync(args);
 
@@ -159,7 +159,7 @@ internal static class HStackCli
 
             return args[0] switch
             {
-                "init" => await InitAsync(args[1..], initializer, processRunner, toolchain, toolchainPath),
+                "init" => await InitAsync(args[1..], initializer, processRunner, toolchain, toolchainPath, certificateService),
                 "project" => await ProjectAsync(args[1..], projectService),
                 "up" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.UpAsync(p, ct)),
                 "down" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.DownAsync(p, ct)),
@@ -201,7 +201,8 @@ internal static class HStackCli
         HStackInitializer initializer,
         ProcessRunner processRunner,
         ToolchainVersions toolchain,
-        string toolchainPath)
+        string toolchainPath,
+        CertificateBundleService certificateService)
     {
         var orchestrator = GetOption(args, "--orchestrator") ?? "compose";
         if (!string.Equals(orchestrator, "compose", StringComparison.OrdinalIgnoreCase))
@@ -272,6 +273,13 @@ internal static class HStackCli
                 "--build-arg", $"HSTACK_UID={uidValue}",
                 "--build-arg", $"HSTACK_GID={gidValue}"
             ]);
+        }
+
+        var corporateBundle = await certificateService.BuildCorporateBundleAsync();
+        if (corporateBundle is not null)
+        {
+            commonBuildArgs.AddRange(["--secret", $"id=hstack_corporate_ca,src={corporateBundle}"]);
+            AnsiConsole.MarkupLine("[green]✓[/] Corporate CA bundle will be trusted during image build");
         }
 
         var baseTag = $"hstack/workspace-base:{toolchain.WorkspaceVersion}";
@@ -746,27 +754,27 @@ internal static class HStackCli
     {
         AnsiConsole.MarkupLine("""
 [bold]hstack[/]
-  hstack init [--orchestrator compose]
+  hstack init [[--orchestrator compose]]
   hstack project add <id> <hostPath>
   hstack project list
   hstack up <project>
   hstack down <project>
   hstack shell <project>
-  hstack status [project]
+  hstack status [[project]]
 
-  hstack agent list [--project <project>]
-  hstack agent run <agent> --project <project> [-- <args>]
+  hstack agent list [[--project <project>]]
+  hstack agent run <agent> --project <project> [[-- <args>]]
   hstack auth <agent> --project <project>
 
   hstack session init|status|list|agents|stop <project>
-  hstack session run <agent> <project> --name <name> [-- <args>]
+  hstack session run <agent> <project> --name <name> [[-- <args>]]
   hstack herdr <project>
-  hstack tmux <project> [session-name]
+  hstack tmux <project> [[session-name]]
 
-  hstack claude <project> [-- <args>]
-  hstack codex <project> [-- <args>]
-  hstack hermes <project> [-- <args>]
-  hstack opencode <project> [-- <args>]
+  hstack claude <project> [[-- <args>]]
+  hstack codex <project> [[-- <args>]]
+  hstack hermes <project> [[-- <args>]]
+  hstack opencode <project> [[-- <args>]]
 
   hstack cert add <certificate.pem>
   hstack proxy show|set|disable
@@ -775,32 +783,32 @@ internal static class HStackCli
   hstack secret remove <NAME> --project <project>
   hstack security inspect <project>
   hstack token providers
-  hstack token status [project]
-  hstack token enable <project> [--provider rtk] [--profile balanced] [--agents <csv>]
-  hstack token disable <project> [--provider rtk|caveman|all]
+  hstack token status [[project]]
+  hstack token enable <project> [[--provider rtk]] [[--profile balanced]] [[--agents <csv>]]
+  hstack token disable <project> [[--provider rtk|caveman|all]]
   hstack token configure <project> --profile off|safe|balanced|aggressive|custom
   hstack token doctor <project>
   hstack token gain <project>
-  hstack token stats <project> [--agent <agent>]
+  hstack token stats <project> [[--agent <agent>]]
 
   hstack memory providers
-  hstack memory status [project]
+  hstack memory status [[project]]
   hstack memory enable|disable <project>
   hstack memory setup
   hstack memory stop
   hstack memory inspect <project>
-  hstack memory search <project> <query> [--scope project|agent|shared|global]
-  hstack memory scopes [project]
-  hstack memory doctor [project]
-  hstack memory write <project> <name> --content <text> [--scope project|agent|shared]
-  hstack memory share <project> <namespace> --with <project,...> [--write]
-  hstack memory export <project> [output.ovpack]
+  hstack memory search <project> <query> [[--scope project|agent|shared|global]]
+  hstack memory scopes [[project]]
+  hstack memory doctor [[project]]
+  hstack memory write <project> <name> --content <text> [[--scope project|agent|shared]]
+  hstack memory share <project> <namespace> --with <project,...> [[--write]]
+  hstack memory export <project> [[output.ovpack]]
   hstack memory import <project> <input.ovpack>
-  hstack memory clear <project> [--yes]
+  hstack memory clear <project> [[--yes]]
   hstack memory integrate <project> --agent claude|codex|hermes|opencode|all
-  hstack context explain <project> [--query <query>] [--agent <agent>]
+  hstack context explain <project> [[--query <query>]] [[--agent <agent>]]
 
-  hstack doctor [project] [--network|--certificates|--security|--tokens|--memory]
+  hstack doctor [[project]] [[--network|--certificates|--security|--tokens|--memory]]
   hstack integrations list
   hstack version
 """);
