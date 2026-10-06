@@ -18,6 +18,10 @@ The OpenViking root and account-admin credentials remain host-side and are never
 | shared | `viking://resources/hstack-shared/<namespace>/` | explicit restricted ACL |
 | global | denied in M6 | use explicit shared namespace |
 
+## Shared-resource ACL enforcement
+
+HermesStack explicitly enables OpenViking account-level `settings.acl.enabled` for the `hstack` account through the provider Admin API before shared namespaces are used. OpenViking 0.4.23 leaves this switch disabled by default; creating a `restricted` ACL without enabling the account switch would not enforce access checks. Failure to enable ACL enforcement is therefore a fail-closed M6 startup/provisioning error.
+
 ## Credential handling
 
 The server configuration contains an environment placeholder for `OPENVIKING_ROOT_API_KEY`. Docker receives the value through a runtime secret file with owner-only permissions. Project user credentials live only in the protected secret store and project-specific OpenViking client state.
