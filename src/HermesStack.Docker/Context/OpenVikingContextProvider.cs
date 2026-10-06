@@ -238,6 +238,27 @@ public sealed class OpenVikingContextProvider(
         await EnsureSuccessAsync(importResponse, "import project context", cancellationToken);
     }
 
+    public async Task ClearAsync(
+        string projectId,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = await manager.EnsureProjectAsync(projectId, cancellationToken);
+        using var client = CreateClient(connection.HostEndpoint, connection.ApiKey);
+
+        foreach (var uri in new[] { "viking://~/memories/", "viking://~/peers/" })
+        {
+            using var response = await client.DeleteAsync(
+                $"/api/v1/fs?uri={Uri.EscapeDataString(uri)}&recursive=true",
+                cancellationToken);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                continue;
+            }
+
+            await EnsureSuccessAsync(response, "clear project context", cancellationToken);
+        }
+    }
+
     private async Task EnsureRestrictedSharedNamespaceAsync(
         string itemUri,
         CancellationToken cancellationToken)
