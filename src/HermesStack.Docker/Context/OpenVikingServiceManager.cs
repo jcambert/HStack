@@ -77,7 +77,8 @@ public sealed class OpenVikingServiceManager(
     {
         ValidateProjectId(projectId);
         await EnsureServiceAsync(cancellationToken);
-        _ = await EnsureAdminKeyAsync(cancellationToken);
+        var adminKey = await EnsureAdminKeyAsync(cancellationToken);
+        await EnsureAccountAclEnabledAsync(adminKey, cancellationToken);
         var userId = UserId(projectId);
         var apiKey = await EnsureProjectKeyAsync(projectId, userId, cancellationToken);
         await WriteProjectClientConfigAsync(projectId, apiKey, cancellationToken);
@@ -96,6 +97,7 @@ public sealed class OpenVikingServiceManager(
     {
         await EnsureServiceAsync(cancellationToken);
         var key = await EnsureAdminKeyAsync(cancellationToken);
+        await EnsureAccountAclEnabledAsync(key, cancellationToken);
         return new OpenVikingAdminConnection(AccountId, AdminUserId, HostEndpoint, key);
     }
 
@@ -210,6 +212,36 @@ public sealed class OpenVikingServiceManager(
 
         await secretStore.SetAsync(reference, new SecretValue(key), cancellationToken);
         return key;
+    }
+
+    private async Task EnsureAccountAclEnabledAsync(
+        string adminKey,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(adminKey);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Patch,
+            $"/api/v1/admin/accounts/{Uri.EscapeDataString(AccountId)}/configuration")
+        {
+            Content = JsonContent.Create(new
+            {
+                settings = new
+                {
+                    acl = new
+                    {
+                        enabled = true
+                    }
+                }
+            })
+        };
+        using var response = await client.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            await ThrowApiErrorAsync(
+                response,
+                "enable account ACL enforcement",
+                cancellationToken);
+        }
     }
 
     private async Task<string> EnsureProjectKeyAsync(
