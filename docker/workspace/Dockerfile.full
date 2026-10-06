@@ -42,6 +42,9 @@ LABEL org.opencontainers.image.title="HermesStack workspace full" \
 
 USER root
 
+# Optional corporate CA trust for build-time downloads (see build-ca.sh).
+COPY build-ca.sh /tmp/hstack-build-ca.sh
+
 # Hermes currently builds native Node modules during its official install.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -50,7 +53,9 @@ RUN apt-get update \
 
 # Claude Code: install the exact official native release artifact used by the
 # native installer and verify Anthropic's published SHA-256 digest.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     case "${TARGETARCH}" in \
       amd64) claude_asset="claude-linux-x64.tar.gz"; claude_sha="aa184fe26777b16e18230da937ffe369e40f261bc65405520cafd7bd95783bef" ;; \
       arm64) claude_asset="claude-linux-arm64.tar.gz"; claude_sha="f1dd579805a35402555a833dde1ee509ff6744921dd3f706c82831c7b31cd65f" ;; \
@@ -70,7 +75,9 @@ RUN set -eux; \
 
 # Herdr: install the exact immutable stable release artifact and verify the
 # digest published by the GitHub release before placing it on PATH.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     case "${TARGETARCH}" in \
       amd64) herdr_asset="herdr-linux-x86_64"; herdr_sha="${HERDR_SHA256_X64}" ;; \
       arm64) herdr_asset="herdr-linux-aarch64"; herdr_sha="${HERDR_SHA256_ARM64}" ;; \
@@ -86,7 +93,9 @@ RUN set -eux; \
 
 # RTK: install the exact official release archive and verify the release digest.
 # x86_64 uses the upstream musl build; arm64 uses the published glibc build.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     case "${TARGETARCH}" in \
       amd64) rtk_asset="rtk-x86_64-unknown-linux-musl.tar.gz"; rtk_sha="${RTK_SHA256_X64}" ;; \
       arm64) rtk_asset="rtk-aarch64-unknown-linux-gnu.tar.gz"; rtk_sha="${RTK_SHA256_ARM64}" ;; \
@@ -106,7 +115,9 @@ RUN set -eux; \
 
 # Caveman: keep the signed release source pinned in the image. HermesStack invokes
 # its upstream installer only when a user explicitly enables this provider.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     git clone --filter=blob:none --no-checkout \
       https://github.com/JuliusBrussee/caveman.git /opt/caveman; \
     git -C /opt/caveman fetch --depth 1 origin "${CAVEMAN_COMMIT}"; \
@@ -116,7 +127,9 @@ RUN set -eux; \
 
 # Codex and OpenCode both document npm as a supported package-manager install.
 # Exact versions keep the image reproducible and select their platform packages.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     npm install -g --omit=dev \
       "@openai/codex@${CODEX_VERSION}" \
       "opencode-ai@${OPENCODE_VERSION}"; \
@@ -128,7 +141,9 @@ RUN set -eux; \
 # committed uv.lock. This follows the dependency-install path used by the
 # upstream production Dockerfile and avoids mixing a newer installer with an
 # older pinned source tree.
-RUN set -eux; \
+RUN --mount=type=secret,id=hstack_corporate_ca,required=false \
+    set -eux; \
+    . /tmp/hstack-build-ca.sh; \
     export UV_NO_CONFIG=1; \
     git clone --filter=blob:none --no-checkout \
       https://github.com/NousResearch/hermes-agent.git /opt/hermes; \
