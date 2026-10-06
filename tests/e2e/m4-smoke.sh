@@ -31,7 +31,7 @@ printf 'secret-b\n' > "$project_b/secret-b.txt"
 # The M3 gate that runs immediately before this one builds the workspace
 # image pinned by toolchain.lock.yaml. Keep this gate focused on M4 behavior
 # without hard-coding a previous milestone version.
-workspace_version="$(sed -n 's/^  version: "\\(.*\\)"/\\1/p' "$repo_root/toolchain.lock.yaml" | head -n 1)"
+workspace_version="$(awk '$1 == "workspace:" { in_workspace=1; next } in_workspace && $1 == "version:" { gsub(/"/, "", $2); print $2; exit }' "$repo_root/toolchain.lock.yaml")"
 test -n "$workspace_version"
 docker image inspect "hstack/workspace-full:$workspace_version" >/dev/null
 
