@@ -27,6 +27,19 @@ public sealed class OpenVikingContextScopeMapperTests
     }
 
     [Fact]
+    public void Global_scope_fails_closed()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.GetSearchRoot(new ContextQuery("a", "q", ContextScope.Global)));
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.GetWriteUri(new ContextWriteRequest(
+                "a",
+                ContextScope.Global,
+                "global-item",
+                "content")));
+    }
+
+    [Fact]
     public void Write_names_are_sanitized_and_receive_text_extension()
     {
         var uri = _mapper.GetWriteUri(

@@ -105,8 +105,8 @@ public sealed class OpenVikingServiceManager(
             new SecretReference(SystemProjectId, RootSecretName),
             cancellationToken);
 
-        await WriteServerConfigAsync(rootKey, cancellationToken);
-        await WriteComposeAsync(cancellationToken);
+        await WriteServerConfigAsync(cancellationToken);
+        await WriteComposeAsync(rootKey, cancellationToken);
 
         _ = await processRunner.RunAsync(
             new ProcessRequest(
@@ -131,6 +131,12 @@ public sealed class OpenVikingServiceManager(
                 ["compose", "-p", "hstack-context", "-f", ComposeFile, "down"],
                 ThrowOnError: true),
             cancellationToken);
+
+        var runtimeSecret = Path.Combine(RuntimeDirectory, "root-api-key");
+        if (File.Exists(runtimeSecret))
+        {
+            File.Delete(runtimeSecret);
+        }
     }
 
     public async Task RunSetupAsync(CancellationToken cancellationToken = default)
@@ -138,21 +144,22 @@ public sealed class OpenVikingServiceManager(
         var rootKey = await GetOrCreateSecretAsync(
             new SecretReference(SystemProjectId, RootSecretName),
             cancellationToken);
-        await WriteServerConfigAsync(rootKey, cancellationToken);
-        await WriteComposeAsync(cancellationToken);
+        await WriteServerConfigAsync(cancellationToken);
+        await WriteComposeAsync(rootKey, cancellationToken);
 
         _ = await processRunner.RunAsync(
             new ProcessRequest(
                 "docker",
                 [
                     "compose", "-p", "hstack-context", "-f", ComposeFile,
-                    "run", "--rm", "--entrypoint", "openviking-server",
-                    "openviking", "init"
+                    "run", "--rm", "--entrypoint", "/bin/sh",
+                    "openviking", "-c",
+                    "export OPENVIKING_ROOT_API_KEY=\"$(cat /run/secrets/openviking_root_api_key)\"; exec openviking-server init"
                 ],
                 CaptureOutput: false),
             cancellationToken);
 
-        await WriteServerConfigAsync(rootKey, cancellationToken);
+        await WriteServerConfigAsync(cancellationToken);
         _ = await processRunner.RunAsync(
             new ProcessRequest(
                 "docker",
@@ -290,7 +297,6 @@ public sealed class OpenVikingServiceManager(
     }
 
     private async Task WriteServerConfigAsync(
-        string rootKey,
         CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(DataDirectory);
@@ -310,7 +316,7 @@ public sealed class OpenVikingServiceManager(
         server["host"] = "0.0.0.0";
         server["port"] = 1933;
         server["auth_mode"] = "api_key";
-        server["root_api_key"] = rootKey;
+        server["root_api_key"] = "${OPENVIKING_ROOT_API_KEY}";
         document["server"] = server;
 
         var storage = document["storage"] as JsonObject ?? new JsonObject();
@@ -322,14 +328,26 @@ public sealed class OpenVikingServiceManager(
         ProtectFile(ServerConfigFile);
     }
 
-    private async Task WriteComposeAsync(CancellationToken cancellationToken)
+    private async Task WriteComposeAsync(
+        string rootKey,
+        CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(RuntimeDirectory);
         Directory.CreateDirectory(DataDirectory);
 
+        var runtimeSecret = Path.Combine(RuntimeDirectory, "root-api-key");
+        await AtomicWriteAsync(runtimeSecret, rootKey + Environment.NewLine, cancellationToken);
+        ProtectFile(runtimeSecret);
+
         var service = new Dictionary<string, object?>
         {
             ["image"] = image,
+            ["entrypoint"] = new[]
+            {
+                "/bin/sh",
+                "-c",
+                "export OPENVIKING_ROOT_API_KEY=\"$(cat /run/secrets/openviking_root_api_key)\"; exec openviking-entrypoint --without-bot"
+            },
             ["container_name"] = "hstack-memory-openviking",
             ["restart"] = "unless-stopped",
             ["ports"] = new[] { "127.0.0.1:1933:1933" },
@@ -345,6 +363,7 @@ public sealed class OpenVikingServiceManager(
             ["security_opt"] = new[] { "no-new-privileges:true" },
             ["cap_drop"] = new[] { "ALL" },
             ["pids_limit"] = 512,
+            ["secrets"] = new[] { "openviking_root_api_key" },
             ["networks"] = new[] { "context" },
             ["labels"] = new Dictionary<string, string>
             {
@@ -358,6 +377,13 @@ public sealed class OpenVikingServiceManager(
         var document = new Dictionary<string, object>
         {
             ["services"] = new Dictionary<string, object?> { ["openviking"] = service },
+            ["secrets"] = new Dictionary<string, object?>
+            {
+                ["openviking_root_api_key"] = new Dictionary<string, object>
+                {
+                    ["file"] = runtimeSecret
+                }
+            },
             ["networks"] = new Dictionary<string, object?>
             {
                 ["context"] = new Dictionary<string, object>

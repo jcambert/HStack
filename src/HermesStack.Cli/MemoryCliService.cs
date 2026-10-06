@@ -170,7 +170,7 @@ internal sealed class MemoryCliService(
         table.AddRow("Private scope", "provider-native project user");
         table.AddRow("Agent scope", "provider-native peer memory");
         table.AddRow("Shared scope", "viking://resources/hstack-shared/ + restricted ACL");
-        table.AddRow("Global scope", "viking://resources/hstack-global/");
+        table.AddRow("Global scope", "denied in M6; use explicit shared ACL namespace");
         if (info is not null)
         {
             table.AddRow("Account", Markup.Escape(info.AccountId));
@@ -242,7 +242,7 @@ internal sealed class MemoryCliService(
         table.AddRow("agent", "viking://~/peers/<agent>/memories/", "project user + peer");
         table.AddRow("project", "viking://~/", "dedicated project user/API key");
         table.AddRow("shared", "viking://resources/hstack-shared/", "explicit restricted ACL");
-        table.AddRow("global", "viking://resources/hstack-global/", "explicit shared policy");
+        table.AddRow("global", "denied", "use explicit shared ACL namespace");
         AnsiConsole.Write(table);
         return 0;
     }
@@ -390,22 +390,36 @@ internal sealed class MemoryCliService(
 
         foreach (var agent in agents)
         {
-            var command = agent == "hermes"
-                ? new[] { "hermes", "memory", "setup", "openviking" }
-                : new[]
-                {
-                    "/bin/bash",
-                    "-lc",
-                    $"curl -fsSL https://openviking.ai/install | bash -s -- --harness {agent}"
-                };
-
-            var exit = await orchestrator.ExecAsync(new WorkspaceExecutionRequest(
-                plan,
-                command,
-                Interactive: true));
-            if (exit != 0)
+            if (agent == "hermes")
             {
-                return exit;
+                var hermesExit = await orchestrator.ExecAsync(new WorkspaceExecutionRequest(
+                    plan,
+                    ["hermes", "memory", "setup", "openviking"],
+                    Interactive: true));
+                if (hermesExit != 0)
+                {
+                    return hermesExit;
+                }
+
+                continue;
+            }
+
+            var downloadExit = await orchestrator.ExecAsync(new WorkspaceExecutionRequest(
+                plan,
+                ["curl", "-fsSL", "https://openviking.ai/install", "-o", "/tmp/openviking-install.sh"],
+                Interactive: false));
+            if (downloadExit != 0)
+            {
+                return downloadExit;
+            }
+
+            var installExit = await orchestrator.ExecAsync(new WorkspaceExecutionRequest(
+                plan,
+                ["/bin/bash", "/tmp/openviking-install.sh", "--yes", "--harness", agent],
+                Interactive: false));
+            if (installExit != 0)
+            {
+                return installExit;
             }
         }
 

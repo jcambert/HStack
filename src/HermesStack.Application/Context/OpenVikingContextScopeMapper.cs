@@ -12,7 +12,8 @@ public sealed class OpenVikingContextScopeMapper : IContextScopeMapper
         ContextScope.Agent => $"viking://~/peers/{Segment(query.AgentId ?? "agent")}/memories/",
         ContextScope.Project => "viking://~/",
         ContextScope.Shared => "viking://resources/hstack-shared/",
-        ContextScope.Global => "viking://resources/hstack-global/",
+        ContextScope.Global => throw new InvalidOperationException(
+            "Global context is denied in M6. Use an explicitly shared namespace with provider-native ACLs."),
         _ => throw new ArgumentOutOfRangeException(nameof(query))
     };
 
@@ -25,7 +26,8 @@ public sealed class OpenVikingContextScopeMapper : IContextScopeMapper
             ContextScope.Agent => $"viking://~/peers/{Segment(request.AgentId ?? "agent")}/memories/",
             ContextScope.Project => "viking://~/memories/hstack-project/",
             ContextScope.Shared => "viking://resources/hstack-shared/",
-            ContextScope.Global => "viking://resources/hstack-global/",
+            ContextScope.Global => throw new InvalidOperationException(
+                "Global context is denied in M6. Use an explicitly shared namespace with provider-native ACLs."),
             _ => throw new ArgumentOutOfRangeException(nameof(request))
         };
 
