@@ -118,6 +118,21 @@ public sealed class OpenVikingServiceManager(
         await WaitForHealthAsync(cancellationToken);
     }
 
+    public async Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(ComposeFile))
+        {
+            return;
+        }
+
+        _ = await processRunner.RunAsync(
+            new ProcessRequest(
+                "docker",
+                ["compose", "-p", "hstack-context", "-f", ComposeFile, "down"],
+                ThrowOnError: true),
+            cancellationToken);
+    }
+
     public async Task RunSetupAsync(CancellationToken cancellationToken = default)
     {
         var rootKey = await GetOrCreateSecretAsync(

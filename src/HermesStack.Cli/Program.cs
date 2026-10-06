@@ -787,6 +787,7 @@ internal static class HStackCli
   hstack memory status [project]
   hstack memory enable|disable <project>
   hstack memory setup
+  hstack memory stop
   hstack memory inspect <project>
   hstack memory search <project> <query> [--scope project|agent|shared|global]
   hstack memory scopes [project]

@@ -22,7 +22,7 @@ internal sealed class MemoryCliService(
         if (args.Length == 0)
         {
             throw new ArgumentException(
-                "Usage: hstack memory status|providers|enable|disable|setup|inspect|search|scopes|doctor|write|share|export|import|integrate ...");
+                "Usage: hstack memory status|providers|enable|disable|setup|stop|inspect|search|scopes|doctor|write|share|export|import|integrate ...");
         }
 
         return args[0] switch
@@ -32,6 +32,7 @@ internal sealed class MemoryCliService(
             "enable" => await EnableAsync(args[1..], true),
             "disable" => await EnableAsync(args[1..], false),
             "setup" => await SetupAsync(args[1..]),
+            "stop" => await StopAsync(args[1..]),
             "inspect" => await InspectAsync(args[1..]),
             "search" => await SearchAsync(args[1..]),
             "scopes" => await ScopesAsync(args[1..]),
@@ -135,6 +136,18 @@ internal sealed class MemoryCliService(
         await openViking.RunSetupAsync();
         AnsiConsole.MarkupLine(
             "[green]✓[/] OpenViking setup completed and secure API-key mode re-applied.");
+        return 0;
+    }
+
+    private async Task<int> StopAsync(string[] args)
+    {
+        if (args.Length != 0)
+        {
+            throw new ArgumentException("Usage: hstack memory stop");
+        }
+
+        await openViking.StopAsync();
+        AnsiConsole.MarkupLine("[green]✓[/] OpenViking service stopped.");
         return 0;
     }
 
