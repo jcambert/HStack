@@ -20,6 +20,12 @@ public sealed class OpenVikingContextScopeMapper : IContextScopeMapper
     public string GetWriteUri(ContextWriteRequest request)
     {
         var relative = RelativePath(request.Name);
+        if (request.Scope == ContextScope.Shared && !relative.Contains('/', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Shared context writes must target an explicitly shared namespace using '<namespace>/<item>'.");
+        }
+
         var root = request.Scope switch
         {
             ContextScope.Session => "viking://~/memories/hstack-session/",
