@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-m5:
+  linux-m6:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,8 +39,10 @@ jobs:
         run: bash tests/e2e/m3-smoke.sh
       - name: M4 Network & Security regression gate
         run: bash tests/e2e/m4-smoke.sh
-      - name: M5 Token Efficiency end-to-end gate
+      - name: M5 Token Efficiency regression gate
         run: bash tests/e2e/m5-smoke.sh
+      - name: M6 Shared Context end-to-end gate
+        run: bash tests/e2e/m6-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
@@ -57,7 +59,7 @@ jobs:
   publish-artifacts:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs:
-      - linux-m5
+      - linux-m6
       - windows-compile
     runs-on: ubuntu-latest
     strategy:
