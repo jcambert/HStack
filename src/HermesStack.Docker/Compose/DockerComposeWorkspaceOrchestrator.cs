@@ -7,7 +7,7 @@ namespace HermesStack.Docker.Compose;
 public sealed class DockerComposeWorkspaceOrchestrator(
     IProcessRunner processRunner,
     ComposeOverrideWriter overrideWriter,
-    OpenVikingServiceManager? contextManager = null) : IWorkspaceOrchestrator
+    IWorkspaceContextManager? contextManager = null) : IWorkspaceOrchestrator
 {
     public string Id => "compose";
     public string DisplayName => "Docker Compose";
@@ -200,7 +200,7 @@ public sealed class DockerComposeWorkspaceOrchestrator(
                 "OpenViking context is enabled but no context service manager is registered.");
         }
 
-        _ = await contextManager.EnsureProjectAsync(plan.Project.Id, cancellationToken);
+        await contextManager.EnsureWorkspaceReadyAsync(plan.Project.Id, cancellationToken);
     }
 
     private static IReadOnlyDictionary<string, string?> ProcessEnvironment(

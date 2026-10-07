@@ -4,7 +4,6 @@ using HermesStack.Application.Projects;
 using HermesStack.Application.Security;
 using HermesStack.Domain.Agents;
 using HermesStack.Domain.Orchestration;
-using HermesStack.Docker.Compose;
 using Spectre.Console;
 
 namespace HermesStack.Cli;
@@ -12,7 +11,7 @@ namespace HermesStack.Cli;
 internal sealed class AgentCliService(
     ProjectService projects,
     WorkspaceDeploymentPlanBuilder plans,
-    DockerComposeWorkspaceOrchestrator orchestrator,
+    IWorkspaceOrchestrator orchestrator,
     IAgentHarnessRegistry registry,
     SecretInjectionService secretInjection)
 {
