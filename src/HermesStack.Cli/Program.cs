@@ -593,17 +593,17 @@ internal static class HStackCli
             if (json)
             {
                 var items = new List<object>();
-                foreach (var project in await projects.ListAsync())
+                foreach (var itemProject in await projects.ListAsync())
                 {
-                    var plan = await plans.BuildAsync(project);
-                    var status = await orchestrator.GetStatusAsync(plan);
+                    var itemPlan = await plans.BuildAsync(itemProject);
+                    var itemStatus = await orchestrator.GetStatusAsync(itemPlan);
                     items.Add(new
                     {
-                        project = project.Id,
-                        name = project.Name,
-                        state = status.State.ToString(),
-                        image = plan.WorkspaceImage,
-                        path = project.HostPath
+                        project = itemProject.Id,
+                        name = itemProject.Name,
+                        state = itemStatus.State.ToString(),
+                        image = itemPlan.WorkspaceImage,
+                        path = itemProject.HostPath
                     });
                 }
 
