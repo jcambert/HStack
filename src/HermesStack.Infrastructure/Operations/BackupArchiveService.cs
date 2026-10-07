@@ -54,7 +54,8 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(entry.Name) ||
-                string.Equals(entry.FullName, "manifest.json", StringComparison.Ordinal))
+                string.Equals(entry.FullName, "manifest.json", StringComparison.Ordinal) ||
+                string.Equals(entry.FullName, "secrets.enc", StringComparison.Ordinal))
             {
                 continue;
             }
