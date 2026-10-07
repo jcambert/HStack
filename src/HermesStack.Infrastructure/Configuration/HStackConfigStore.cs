@@ -1,6 +1,7 @@
 using HermesStack.Application.Abstractions;
 using HermesStack.Domain.Context;
 using HermesStack.Domain.Network;
+using HermesStack.Domain.Orchestration;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -8,7 +9,8 @@ namespace HermesStack.Infrastructure.Configuration;
 
 public sealed class HStackConfigStore(IDataRootProvider dataRoot) :
     IProxyConfigurationStore,
-    IContextConfigurationStore
+    IContextConfigurationStore,
+    IOrchestrationConfigurationStore
 {
     private readonly ISerializer _serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -19,6 +21,64 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) :
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
         .Build();
+
+    public async Task<OrchestrationConfiguration> GetOrchestrationAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var document = await LoadAsync(cancellationToken);
+        var orchestration = document.Orchestration ?? new OrchestrationDto();
+        var aspire = orchestration.Aspire ?? new BackendDto { Enabled = true };
+        var dashboard = aspire.Dashboard ?? new DashboardDto();
+        return new OrchestrationConfiguration(
+            orchestration.Default,
+            orchestration.Compose?.Enabled ?? true,
+            aspire.Enabled,
+            new AspireDashboardConfiguration(
+                dashboard.Enabled,
+                dashboard.ExposeToLan));
+    }
+
+    public async Task SaveOrchestrationAsync(
+        OrchestrationConfiguration configuration,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = configuration.DefaultOrchestrator.Trim().ToLowerInvariant();
+        if (normalized is not ("compose" or "aspire"))
+        {
+            throw new ArgumentException(
+                "Default orchestrator must be 'compose' or 'aspire'.",
+                nameof(configuration));
+        }
+
+        if (!configuration.IsEnabled(normalized))
+        {
+            throw new InvalidOperationException(
+                $"Default orchestrator '{normalized}' must be enabled.");
+        }
+
+        if (configuration.EffectiveAspireDashboard.ExposeToLan)
+        {
+            throw new InvalidOperationException(
+                "HS2108: Aspire Dashboard LAN exposure is forbidden by the current HermesStack security policy.");
+        }
+
+        var document = await LoadAsync(cancellationToken);
+        document.Orchestration = new OrchestrationDto
+        {
+            Default = normalized,
+            Compose = new BackendDto { Enabled = configuration.ComposeEnabled },
+            Aspire = new BackendDto
+            {
+                Enabled = configuration.AspireEnabled,
+                Dashboard = new DashboardDto
+                {
+                    Enabled = configuration.EffectiveAspireDashboard.Enabled,
+                    ExposeToLan = false
+                }
+            }
+        };
+        await SaveDocumentAsync(document, cancellationToken);
+    }
 
     public async Task<ProxyConfiguration> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -153,13 +213,24 @@ public sealed class HStackConfigStore(IDataRootProvider dataRoot) :
     public sealed class OrchestrationDto
     {
         public string Default { get; set; } = "compose";
-        public BackendDto Compose { get; set; } = new() { Enabled = true };
-        public BackendDto Aspire { get; set; } = new();
+        public BackendDto? Compose { get; set; } = new() { Enabled = true };
+        public BackendDto? Aspire { get; set; } = new()
+        {
+            Enabled = true,
+            Dashboard = new DashboardDto()
+        };
     }
 
     public sealed class BackendDto
     {
         public bool Enabled { get; set; }
+        public DashboardDto? Dashboard { get; set; }
+    }
+
+    public sealed class DashboardDto
+    {
+        public bool Enabled { get; set; } = true;
+        public bool ExposeToLan { get; set; }
     }
 
     public sealed class NetworkDto

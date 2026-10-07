@@ -5,6 +5,8 @@
     <Project Path="src/HermesStack.Application/HermesStack.Application.csproj" />
     <Project Path="src/HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
     <Project Path="src/HermesStack.Docker/HermesStack.Docker.csproj" />
+    <Project Path="src/HermesStack.Aspire/HermesStack.Aspire.csproj" />
+    <Project Path="src/HermesStack.AppHost/HermesStack.AppHost.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj" />
