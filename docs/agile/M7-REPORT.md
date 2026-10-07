@@ -27,4 +27,8 @@ M7 covers EPIC-016 through EPIC-020: managed updates, backup/restore/portability
 - Project removal unregisters metadata and never deletes project source.
 
 ## Validation
-M7 is complete when the feature PR is green on the Linux and Windows jobs, including the M7 operations smoke gate.
+Completed on 2026-10-07:
+- PR #11 passed Linux build/unit/integration, M3-M7 regression gates and Windows build/unit validation.
+- The merged `main` commit `3b42ed2` passed the same Linux/Windows validation.
+- Delivery jobs published `hstack-win-x64`, `hstack-linux-x64` and `hstack-linux-arm64` artifacts successfully.
+- M7 backlog, roadmap, EPICs, PBIs and User Stories are marked Done.

@@ -37,14 +37,12 @@
 - PBI-1501..1509 completed: provider abstraction, pinned OpenViking deployment, project identities, restricted shared namespaces, first-party agent integrations, context budgets, secret filtering, observability, export/import and confirmed memory clear.
 - Security completion: account ACL enforcement is fail-closed, private project credentials are isolated, shared writes require an explicit restricted namespace, and root/admin credentials never enter workspaces.
 
-## In Progress — M7 Operations
+## Done — M7 Operations
 
-- EPIC-016 Update & Toolchain Management — In Progress.
-- US-1601 Check managed updates — Review.
-- EPIC-017 Backup, Restore & Portability — Proposed.
-- EPIC-018 Observability & Metrics — Proposed.
-- EPIC-019 CLI UX & Interactive Dashboard — Proposed.
-- EPIC-020 CI/CD & Distribution — Proposed.
+- EPIC-016..020 completed: managed transactional updates, backup/restore and portability, redacted operational observability, automation-friendly CLI/dashboard, and CI/CD distribution.
+- US-1601/1602, US-1701/1702, US-1801, US-1901 and US-2001 completed.
+- Validation completed on Linux and Windows with M3-M7 regression gates green.
+- Self-contained delivery artifacts published for win-x64, linux-x64 and linux-arm64 with SHA-256 manifests.
 
 ## Later
 

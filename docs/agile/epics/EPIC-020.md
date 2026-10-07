@@ -12,4 +12,4 @@
 
 **Target Release:** M7.
 
-**Status:** Review.
+**Status:** Done.
