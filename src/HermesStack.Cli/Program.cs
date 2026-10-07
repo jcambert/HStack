@@ -407,9 +407,18 @@ internal static class HStackCli
 
     private static async Task<int> ProjectAsync(string[] args, ProjectService projects)
     {
-        if (args.Length == 0 || args[0] == "list")
+        var command = args.Length == 0 ? "list" : args[0];
+        var json = args.Contains("--json", StringComparer.Ordinal);
+
+        if (command == "list")
         {
             var list = await projects.ListAsync();
+            if (json)
+            {
+                AnsiConsole.WriteLine(JsonSerializer.Serialize(list));
+                return 0;
+            }
+
             var table = new Table()
                 .AddColumn("Id")
                 .AddColumn("Name")
@@ -424,7 +433,33 @@ internal static class HStackCli
             return 0;
         }
 
-        if (args[0] == "add")
+        if (command == "show")
+        {
+            if (args.Length < 2)
+            {
+                throw new ArgumentException("Usage: hstack project show <id> [[--json]]");
+            }
+
+            var project = await projects.GetRequiredAsync(args[1]);
+            if (json)
+            {
+                AnsiConsole.WriteLine(JsonSerializer.Serialize(project));
+            }
+            else
+            {
+                var table = new Table().AddColumn("Property").AddColumn("Value");
+                table.AddRow("Id", Markup.Escape(project.Id));
+                table.AddRow("Name", Markup.Escape(project.Name));
+                table.AddRow("Host path", Markup.Escape(project.HostPath));
+                table.AddRow("Container path", Markup.Escape(project.ContainerPath));
+                table.AddRow("State", Markup.Escape(project.StateScope));
+                AnsiConsole.Write(table);
+            }
+
+            return 0;
+        }
+
+        if (command == "add")
         {
             if (args.Length < 3)
             {
@@ -438,13 +473,64 @@ internal static class HStackCli
                     $"[yellow]! {validation.Code}[/] {Markup.Escape(validation.Message)}");
             }
 
-            var project = await projects.AddAsync(args[1], args[2]);
-            AnsiConsole.MarkupLine(
-                $"[green]✓[/] Project [bold]{Markup.Escape(project.Id)}[/] added: {Markup.Escape(project.HostPath)}");
+            var project = await projects.AddAsync(
+                args[1],
+                args[2],
+                GetOption(args, "--name"));
+            if (!args.Contains("--quiet", StringComparer.Ordinal))
+            {
+                AnsiConsole.MarkupLine(
+                    $"[green]✓[/] Project [bold]{Markup.Escape(project.Id)}[/] added: {Markup.Escape(project.HostPath)}");
+            }
+
             return 0;
         }
 
-        throw new ArgumentException($"Unknown project command '{args[0]}'.");
+        if (command == "edit")
+        {
+            if (args.Length < 2)
+            {
+                throw new ArgumentException(
+                    "Usage: hstack project edit <id> [[--path <hostPath>]] [[--name <name>]]");
+            }
+
+            var updated = await projects.EditAsync(
+                args[1],
+                GetOption(args, "--path"),
+                GetOption(args, "--name"));
+            if (!args.Contains("--quiet", StringComparer.Ordinal))
+            {
+                AnsiConsole.MarkupLine(
+                    $"[green]✓[/] Project {Markup.Escape(updated.Id)} updated.");
+            }
+
+            return 0;
+        }
+
+        if (command == "remove")
+        {
+            if (args.Length < 2)
+            {
+                throw new ArgumentException("Usage: hstack project remove <id> --yes");
+            }
+
+            if (!args.Contains("--yes", StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Project removal requires --yes. Project source files are never deleted.");
+            }
+
+            await projects.RemoveAsync(args[1]);
+            if (!args.Contains("--quiet", StringComparer.Ordinal))
+            {
+                AnsiConsole.MarkupLine(
+                    $"[green]✓[/] Project {Markup.Escape(args[1])} unregistered.");
+            }
+
+            return 0;
+        }
+
+        throw new ArgumentException($"Unknown project command '{command}'.");
     }
 
     private static async Task<int> WorkspaceActionAsync(
@@ -497,30 +583,81 @@ internal static class HStackCli
         IAgentHarnessRegistry agents,
         IntegrationRegistry integrations)
     {
-        if (args.Length == 0)
+        var json = args.Contains("--json", StringComparer.Ordinal);
+        var quiet = args.Contains("--quiet", StringComparer.Ordinal);
+        var projectId = args.FirstOrDefault(static value =>
+            !value.StartsWith("--", StringComparison.Ordinal));
+
+        if (projectId is null)
         {
-            await ShowDashboardAsync(
-                projects,
-                plans,
-                orchestrator,
-                integrations,
-                agents);
+            if (json)
+            {
+                var items = new List<object>();
+                foreach (var project in await projects.ListAsync())
+                {
+                    var plan = await plans.BuildAsync(project);
+                    var status = await orchestrator.GetStatusAsync(plan);
+                    items.Add(new
+                    {
+                        project = project.Id,
+                        name = project.Name,
+                        state = status.State.ToString(),
+                        image = plan.WorkspaceImage,
+                        path = project.HostPath
+                    });
+                }
+
+                AnsiConsole.WriteLine(JsonSerializer.Serialize(items));
+                return 0;
+            }
+
+            if (!quiet)
+            {
+                await ShowDashboardAsync(
+                    projects,
+                    plans,
+                    orchestrator,
+                    integrations,
+                    agents);
+            }
+
             return 0;
         }
 
-        var project = await projects.GetRequiredAsync(args[0]);
+        var project = await projects.GetRequiredAsync(projectId);
         var plan = await plans.BuildAsync(project, GetOption(args, "--orchestrator"));
         var status = await orchestrator.GetStatusAsync(plan);
-        var table = new Table().AddColumn("Property").AddColumn("Value");
-        table.AddRow("Project", project.Name);
-        table.AddRow("Workspace", status.State.ToString());
-        table.AddRow("Image", plan.WorkspaceImage);
-        table.AddRow("User", "hstack");
-        table.AddRow("Mount", $"{project.HostPath} -> /workspace");
-        table.AddRow("Agent state", $"{project.StateScope} ({agents.All.Count} harnesses)");
-        table.AddRow("Security", "Policy A");
-        table.AddRow("Orchestrator", orchestrator.DisplayName);
-        AnsiConsole.Write(table);
+
+        if (json)
+        {
+            AnsiConsole.WriteLine(JsonSerializer.Serialize(new
+            {
+                project = project.Id,
+                name = project.Name,
+                workspace = status.State.ToString(),
+                image = plan.WorkspaceImage,
+                user = "hstack",
+                mount = new { source = project.HostPath, target = "/workspace" },
+                agentState = project.StateScope,
+                agentHarnesses = agents.All.Count,
+                security = "Policy A",
+                orchestrator = orchestrator.DisplayName
+            }));
+        }
+        else if (!quiet)
+        {
+            var table = new Table().AddColumn("Property").AddColumn("Value");
+            table.AddRow("Project", project.Name);
+            table.AddRow("Workspace", status.State.ToString());
+            table.AddRow("Image", plan.WorkspaceImage);
+            table.AddRow("User", "hstack");
+            table.AddRow("Mount", $"{project.HostPath} -> /workspace");
+            table.AddRow("Agent state", $"{project.StateScope} ({agents.All.Count} harnesses)");
+            table.AddRow("Security", "Policy A");
+            table.AddRow("Orchestrator", orchestrator.DisplayName);
+            AnsiConsole.Write(table);
+        }
+
         return status.State == WorkspaceState.Unknown ? 2 : 0;
     }
 
