@@ -78,6 +78,25 @@ public sealed partial class ProjectService(IProjectStore store, HostMountValidat
         return updated;
     }
 
+    public async Task<ProjectDefinition> SetOrchestratorAsync(
+        string id,
+        string orchestrator,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = orchestrator.Trim().ToLowerInvariant();
+        if (normalized is not ("compose" or "aspire"))
+        {
+            throw new ArgumentException(
+                "Orchestrator must be 'compose' or 'aspire'.",
+                nameof(orchestrator));
+        }
+
+        var current = await GetRequiredAsync(id, cancellationToken);
+        var updated = current with { Orchestrator = normalized };
+        await store.SaveAsync(updated, cancellationToken);
+        return updated;
+    }
+
     public async Task RemoveAsync(
         string id,
         CancellationToken cancellationToken = default)
