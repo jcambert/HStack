@@ -53,6 +53,49 @@ public sealed class ProjectServiceOperationsTests
         }
     }
 
+    [Fact]
+    public async Task Ports_are_loopback_only_and_persisted_by_project()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "hstack-tests",
+            Guid.NewGuid().ToString("N"));
+        var source = SafePath("ports");
+        Directory.CreateDirectory(source);
+
+        try
+        {
+            var dataRoot = new DefaultDataRootProvider(root);
+            var service = new ProjectService(
+                new YamlProjectStore(dataRoot),
+                new HostMountValidator(new HostMountPolicy()));
+            await service.AddAsync("demo", source);
+
+            var withPort = await service.AddPortAsync("demo", 5000);
+            var port = Assert.Single(withPort.EffectivePorts);
+            Assert.Equal(5000, port.Container);
+            Assert.Equal(5000, port.EffectiveHost);
+            Assert.Equal("127.0.0.1", port.Bind);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.AddPortAsync("demo", 6000, 5000));
+
+            var withoutPort = await service.RemovePortAsync("demo", 5000);
+            Assert.Empty(withoutPort.EffectivePorts);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            if (Directory.Exists(source))
+            {
+                Directory.Delete(source, recursive: true);
+            }
+        }
+    }
+
     private static string SafePath(string name) =>
         OperatingSystem.IsWindows()
             ? $@"C:\Dev\hstack-tests\{Guid.NewGuid():N}\src\{name}"
