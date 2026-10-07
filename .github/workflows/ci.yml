@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-m6:
+  linux-m7:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
         run: bash tests/e2e/m5-smoke.sh
       - name: M6 Shared Context end-to-end gate
         run: bash tests/e2e/m6-smoke.sh
-      - name: M7 Update management regression gate
+      - name: M7 Operations end-to-end gate
         run: bash tests/e2e/m7-update-check-smoke.sh
 
   windows-compile:
@@ -61,7 +61,7 @@ jobs:
   publish-artifacts:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs:
-      - linux-m6
+      - linux-m7
       - windows-compile
     runs-on: ubuntu-latest
     strategy:
