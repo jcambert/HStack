@@ -18,6 +18,8 @@ public sealed class ToolchainLockServiceTests
                 workspace:
                   version: "0.6.0"
                 tools:
+                  aspire:
+                    version: "13.6.0"
                   herdr:
                     version: "0.9.3"
                     releaseTag: "v0.9.3"
@@ -51,6 +53,7 @@ public sealed class ToolchainLockServiceTests
             var value = new ToolchainLockService().Load(path);
 
             Assert.Equal("0.6.0", value.WorkspaceVersion);
+            Assert.Equal("13.6.0", value.AspireVersion);
             Assert.Equal("0.9.3", value.HerdrVersion);
             Assert.Equal("v0.9.3", value.HerdrReleaseTag);
             Assert.Equal("18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7", value.HerdrSha256X64);
@@ -94,6 +97,8 @@ public sealed class ToolchainLockServiceTests
                 workspace:
                   version: "0.6.0"
                 tools:
+                  aspire:
+                    version: "13.6.0"
                   herdr:
                     version: "deferred-to-M3"
                     releaseTag: "v0.9.3"

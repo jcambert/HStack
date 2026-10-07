@@ -5,6 +5,7 @@ namespace HermesStack.Infrastructure.Configuration;
 
 public sealed record ToolchainVersions(
     string WorkspaceVersion,
+    string AspireVersion,
     string HerdrVersion,
     string HerdrReleaseTag,
     string HerdrSha256X64,
@@ -70,6 +71,7 @@ public sealed class ToolchainLockService
 
         return new ToolchainVersions(
             Require(document.Workspace?.Version, "workspace.version"),
+            Require(document.Tools?.Aspire?.Version, "tools.aspire.version"),
             Require(document.Tools?.Herdr?.Version, "tools.herdr.version"),
             Require(document.Tools?.Herdr?.ReleaseTag, "tools.herdr.releaseTag"),
             RequireDigest(document.Tools?.Herdr?.Sha256X64, "tools.herdr.sha256X64"),
@@ -129,6 +131,7 @@ public sealed class ToolchainLockService
 
     public sealed class ToolsEntry
     {
+        public ToolEntry? Aspire { get; set; }
         public ToolEntry? Hermes { get; set; }
         public ToolEntry? Herdr { get; set; }
         public ToolEntry? ClaudeCode { get; set; }

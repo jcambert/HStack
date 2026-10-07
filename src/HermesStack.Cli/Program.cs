@@ -91,7 +91,7 @@ internal static class HStackCli
                 "aspire",
                 "apphost",
                 "AppHost.cs");
-            const string aspireVersion = "13.6.0";
+            var aspireVersion = toolchain.AspireVersion;
             var aspireCapabilities =
                 new AspireOrchestratorCapabilityEvaluator();
             var aspireOrchestrator = new AspireWorkspaceOrchestrator(
@@ -1228,11 +1228,22 @@ internal static class HStackCli
             IntegrationKind.Orchestrator,
             new HashSet<IntegrationCapability>
             {
+                IntegrationCapability.BindMounts,
+                IntegrationCapability.NoNewPrivileges,
+                IntegrationCapability.DropCapabilities,
+                IntegrationCapability.LocalhostPortBinding,
+                IntegrationCapability.InteractiveTty,
+                IntegrationCapability.PersistentHome,
                 IntegrationCapability.StructuredLogs,
                 IntegrationCapability.Traces,
                 IntegrationCapability.Metrics
             },
-            false)
+            false,
+            "integrate",
+            toolchain.AspireVersion,
+            "Ready",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            "Aspire 13.6 stable CLI/AppHost integration")
     ]);
 
     private static async Task<int> UpdateAsync(

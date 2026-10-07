@@ -58,6 +58,7 @@ public sealed class ToolchainUpdateMetadataProvider(
     [
         new("hstack", "HermesStack", toolchain.WorkspaceVersion),
         new("workspace", "Workspace image", toolchain.WorkspaceVersion),
+        new("aspire", "Aspire", toolchain.AspireVersion),
         new("hermes", "Hermes", toolchain.HermesVersion),
         new("herdr", "Herdr", toolchain.HerdrVersion),
         new("claude", "Claude Code", toolchain.ClaudeCodeVersion),
