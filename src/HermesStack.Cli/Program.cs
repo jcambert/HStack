@@ -168,11 +168,16 @@ internal static class HStackCli
                 tokenService,
                 contextService);
             var archives = new BackupArchiveService(dataRoot);
+            var portableSecrets = new PortableSecretPackageService(
+                projectStore,
+                secretPolicies,
+                secretStore);
             var operationsCli = new HermesStack.Cli.OperationsCliService(
                 projectService,
                 planBuilder,
                 orchestrator,
-                archives);
+                archives,
+                portableSecrets);
             var configCli = new HermesStack.Cli.ConfigCliService(
                 configStore,
                 projectService);
@@ -1431,8 +1436,8 @@ internal static class HStackCli
   hstack update apply --yes
   hstack backup [[project]] [[--config-only]] [[--output <archive.zip>]] [[--json]]
   hstack restore <archive.zip> --yes
-  hstack export <environment.hstack>
-  hstack import <environment.hstack> [[--map <old>=<new>]]
+  hstack export <environment.hstack> [[--include-secrets --passphrase-env <ENV>]]
+  hstack import <environment.hstack> [[--map <old>=<new>]] [[--passphrase-env <ENV>]]
   hstack compose <project> config|ps|logs
   hstack compose <project> -- <arguments>
   hstack clean --yes
