@@ -6,6 +6,6 @@
 - **M4 Network & Security — Done**: EPIC-010..013; proxy/CA, protected secrets, security inspection and doctor.
 - **M5 Token Efficiency — Done**: EPIC-014; RTK first, Caveman opt-in, policies, metrics and diagnostics.
 - **M6 Shared Context — Done**: EPIC-015 / OpenViking first; project-scoped identities, fail-closed ACL sharing, context policy/budgets, agent integrations, diagnostics and memory portability.
-- **M7 Operations — Proposed**: EPIC-016..020.
+- **M7 Operations — In Progress**: EPIC-016 update management started with US-1601; EPIC-017..020 remain Proposed.
 - **M8 Aspire Experience — Proposed**: remaining EPIC-021.
 - **M9 Optional Sandbox Providers — Deferred**: selected EPIC-023 research.

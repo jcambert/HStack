@@ -44,7 +44,17 @@ public sealed class ToolchainLockService
             throw new FileNotFoundException("HermesStack toolchain lock file was not found.", path);
         }
 
-        var document = _deserializer.Deserialize<ToolchainLockDocument>(File.ReadAllText(path))
+        return Parse(File.ReadAllText(path));
+    }
+
+    public ToolchainVersions Parse(string yaml)
+    {
+        if (string.IsNullOrWhiteSpace(yaml))
+        {
+            throw new InvalidDataException("toolchain.lock.yaml is empty.");
+        }
+
+        var document = _deserializer.Deserialize<ToolchainLockDocument>(yaml)
             ?? throw new InvalidDataException("toolchain.lock.yaml is empty.");
 
         if (document.SchemaVersion != 1)
