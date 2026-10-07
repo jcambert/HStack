@@ -27,11 +27,13 @@ internal sealed class DoctorCliService(
     ISecretPolicyStore secretPolicies,
     TokenOptimizationService tokenOptimization,
     ContextService contextService,
-    ISecretRedactor redactor)
+    ISecretRedactor redactor,
+    IWorkspaceOrchestratorRegistry orchestratorRegistry)
 {
     public async Task<int> RunAsync(string[] args)
     {
-        var projectId = args.FirstOrDefault(static value => !value.StartsWith("--", StringComparison.Ordinal));
+        var orchestratorOverride = GetOption(args, "--orchestrator");
+        var projectId = ProjectArgument(args);
         var networkOnly = args.Contains("--network", StringComparer.Ordinal);
         var certificatesOnly = args.Contains("--certificates", StringComparer.Ordinal);
         var securityOnly = args.Contains("--security", StringComparer.Ordinal);
@@ -48,10 +50,15 @@ internal sealed class DoctorCliService(
                 DoctorStatus.Pass,
                 $"{RuntimeInformation.OSDescription} {RuntimeInformation.OSArchitecture}"));
 
-            var availability = await orchestrator.DetectAsync();
+            var selectedOrchestrator = orchestratorOverride is null
+                ? orchestrator
+                : orchestratorRegistry.GetRequired(orchestratorOverride);
+            var availability = await selectedOrchestrator.DetectAsync();
             checks.Add(new DoctorCheck(
                 "HOST",
-                "Docker Compose",
+                orchestratorOverride is null
+                    ? "Workspace orchestrators"
+                    : $"Orchestrator {orchestratorOverride}",
                 availability.IsAvailable ? DoctorStatus.Pass : DoctorStatus.Fail,
                 availability.Version ?? availability.Reason ?? "unavailable"));
 
@@ -64,7 +71,7 @@ internal sealed class DoctorCliService(
 
             if (projectId is not null)
             {
-                await AddProjectChecksAsync(projectId, checks);
+                await AddProjectChecksAsync(projectId, checks, orchestratorOverride);
             }
         }
 
@@ -82,7 +89,7 @@ internal sealed class DoctorCliService(
         {
             if (projectId is not null)
             {
-                await AddSecurityChecksAsync(projectId, checks);
+                await AddSecurityChecksAsync(projectId, checks, orchestratorOverride);
             }
             else if (securityOnly)
             {
@@ -99,7 +106,7 @@ internal sealed class DoctorCliService(
                 {
                     foreach (var project in projectList)
                     {
-                        await AddSecurityChecksAsync(project.Id, checks);
+                        await AddSecurityChecksAsync(project.Id, checks, orchestratorOverride);
                     }
                 }
             }
@@ -109,7 +116,7 @@ internal sealed class DoctorCliService(
         {
             if (projectId is not null)
             {
-                await AddTokenChecksAsync(projectId, checks);
+                await AddTokenChecksAsync(projectId, checks, orchestratorOverride);
             }
             else if (tokensOnly)
             {
@@ -126,7 +133,7 @@ internal sealed class DoctorCliService(
                 {
                     foreach (var project in projectList)
                     {
-                        await AddTokenChecksAsync(project.Id, checks);
+                        await AddTokenChecksAsync(project.Id, checks, orchestratorOverride);
                     }
                 }
             }
@@ -144,12 +151,13 @@ internal sealed class DoctorCliService(
 
     private async Task AddProjectChecksAsync(
         string projectId,
-        List<DoctorCheck> checks)
+        List<DoctorCheck> checks,
+        string? orchestratorOverride)
     {
         try
         {
             var project = await projects.GetRequiredAsync(projectId);
-            var plan = await plans.BuildAsync(project);
+            var plan = await plans.BuildAsync(project, orchestratorOverride);
             checks.Add(new DoctorCheck(
                 "PROJECT",
                 "Mount policy",
@@ -303,12 +311,13 @@ internal sealed class DoctorCliService(
 
     private async Task AddSecurityChecksAsync(
         string projectId,
-        List<DoctorCheck> checks)
+        List<DoctorCheck> checks,
+        string? orchestratorOverride)
     {
         try
         {
             var project = await projects.GetRequiredAsync(projectId);
-            var plan = await plans.BuildAsync(project);
+            var plan = await plans.BuildAsync(project, orchestratorOverride);
             var snapshot = await securityInspector.InspectAsync(plan);
             var policies = await secretPolicies.ListAsync(project.Id);
             snapshot = snapshot with
@@ -338,12 +347,13 @@ internal sealed class DoctorCliService(
 
     private async Task AddTokenChecksAsync(
         string projectId,
-        List<DoctorCheck> checks)
+        List<DoctorCheck> checks,
+        string? orchestratorOverride)
     {
         try
         {
             var project = await projects.GetRequiredAsync(projectId);
-            var plan = await plans.BuildAsync(project);
+            var plan = await plans.BuildAsync(project, orchestratorOverride);
             var configuration = await tokenOptimization.GetAsync(project.Id);
             checks.Add(new DoctorCheck(
                 "TOKENS",
@@ -470,4 +480,31 @@ internal sealed class DoctorCliService(
         Warn,
         Fail
     }
+    private static string? GetOption(string[] args, string name)
+    {
+        var index = Array.IndexOf(args, name);
+        return index >= 0 && index + 1 < args.Length
+            ? args[index + 1]
+            : null;
+    }
+
+    private static string? ProjectArgument(string[] args)
+    {
+        for (var index = 0; index < args.Length; index++)
+        {
+            if (args[index] is "--orchestrator")
+            {
+                index++;
+                continue;
+            }
+
+            if (!args[index].StartsWith("--", StringComparison.Ordinal))
+            {
+                return args[index];
+            }
+        }
+
+        return null;
+    }
+
 }

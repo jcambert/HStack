@@ -194,7 +194,8 @@ internal static class HStackCli
                 secretPolicies,
                 tokenService,
                 contextService,
-                redactor);
+                redactor,
+                orchestratorRegistry);
             var archives = new BackupArchiveService(
                 dataRoot,
                 embeddedToolchainPath);
