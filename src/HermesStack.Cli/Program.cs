@@ -1591,6 +1591,7 @@ internal static class HStackCli
   hstack logs <project> [[--tail <n>]] [[--no-follow]] [[--agent <agent>]]
 
   hstack agent list [[--project <project>]]
+  hstack agent status --project <project>
   hstack agent run <agent> --project <project> [[-- <args>]]
   hstack auth <agent> --project <project>
 
