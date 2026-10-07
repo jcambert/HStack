@@ -125,6 +125,11 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
                         Path.Combine(dataRoot.Root, "data", "projects"),
                         "data/projects",
                         cancellationToken);
+                    AddDirectory(
+                        archive,
+                        Path.Combine(dataRoot.Root, "data", "openviking"),
+                        "data/openviking",
+                        cancellationToken);
                 }
                 else
                 {
@@ -188,7 +193,8 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
     private static bool IsAllowedEntry(string name) =>
         name.StartsWith("config/", StringComparison.Ordinal) ||
         name.StartsWith("certs/", StringComparison.Ordinal) ||
-        name.StartsWith("data/projects/", StringComparison.Ordinal);
+        name.StartsWith("data/projects/", StringComparison.Ordinal) ||
+        name.StartsWith("data/openviking/", StringComparison.Ordinal);
 
     private string SafeDestination(string entryName)
     {
