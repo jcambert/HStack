@@ -185,7 +185,111 @@ internal static class HStackCli
             if (args.Length == 0)
             {
                 await ShowDashboardAsync(projectService, planBuilder, orchestrator, integrations, agents);
-                return 0;
+                if (Console.IsInputRedirected || Console.IsOutputRedirected)
+                {
+                    return 0;
+                }
+
+                while (true)
+                {
+                    var action = AnsiConsole.Prompt(
+                        new SelectionPrompt<string>()
+                            .Title("[bold]Action[/]")
+                            .AddChoices(
+                                "Open project",
+                                "Projects",
+                                "Agents",
+                                "Herdr",
+                                "Updates",
+                                "Doctor",
+                                "Security",
+                                "Certificates",
+                                "Settings",
+                                "Exit"));
+
+                    if (action == "Exit")
+                    {
+                        return 0;
+                    }
+
+                    if (action == "Projects")
+                    {
+                        _ = await ProjectAsync(["list"], projectService);
+                        continue;
+                    }
+
+                    if (action == "Agents")
+                    {
+                        _ = await agentCli.AgentAsync(["list"]);
+                        continue;
+                    }
+
+                    if (action == "Updates")
+                    {
+                        _ = await UpdateAsync(
+                            ["check"],
+                            toolchain,
+                            configStore,
+                            dataRoot,
+                            archives,
+                            processRunner,
+                            certificateService,
+                            projectService,
+                            planBuilder,
+                            orchestrator,
+                            mountValidator,
+                            baseCompose,
+                            secretStore);
+                        continue;
+                    }
+
+                    if (action == "Doctor")
+                    {
+                        _ = await doctorCli.RunAsync([]);
+                        continue;
+                    }
+
+                    if (action == "Certificates")
+                    {
+                        AnsiConsole.MarkupLine(
+                            $"Corporate CA directory: {Markup.Escape(dataRoot.CorporateCertificatesDirectory)}");
+                        AnsiConsole.MarkupLine(
+                            "Add a CA with [bold]hstack cert add <certificate.pem>[/].");
+                        continue;
+                    }
+
+                    if (action == "Settings")
+                    {
+                        _ = await proxyCli.RunAsync(["show"]);
+                        continue;
+                    }
+
+                    var selectedProject = await SelectProjectAsync(
+                        projectService,
+                        action);
+                    if (selectedProject is null)
+                    {
+                        continue;
+                    }
+
+                    if (action == "Open project")
+                    {
+                        _ = await ShellAsync(
+                            [selectedProject],
+                            projectService,
+                            planBuilder,
+                            orchestrator);
+                    }
+                    else if (action == "Herdr")
+                    {
+                        _ = await sessionCli.HerdrAsync([selectedProject]);
+                    }
+                    else if (action == "Security")
+                    {
+                        _ = await securityCli.RunAsync(
+                            ["inspect", selectedProject]);
+                    }
+                }
             }
 
             return args[0] switch
@@ -210,6 +314,7 @@ internal static class HStackCli
                 "opencode" => await agentCli.AliasAsync("opencode", args[1..]),
                 "cert" => await CertAsync(args[1..], dataRoot, certificateService),
                 "proxy" => await proxyCli.RunAsync(args[1..]),
+                "port" => await PortAsync(args[1..], projectService),
                 "secret" => await secretCli.RunAsync(args[1..]),
                 "security" => await securityCli.RunAsync(args[1..]),
                 "token" => await tokenCli.RunAsync(args[1..]),
@@ -536,6 +641,90 @@ internal static class HStackCli
         }
 
         throw new ArgumentException($"Unknown project command '{command}'.");
+    }
+
+    private static async Task<int> PortAsync(
+        string[] args,
+        ProjectService projects)
+    {
+        if (args.Length < 2)
+        {
+            throw new ArgumentException(
+                "Usage: hstack port list|add|remove <project> [[containerPort]] [[--host <port>]]");
+        }
+
+        var command = args[0];
+        var projectId = args[1];
+        if (command == "list")
+        {
+            var project = await projects.GetRequiredAsync(projectId);
+            var table = new Table()
+                .AddColumn("Container")
+                .AddColumn("Host")
+                .AddColumn("Bind");
+            foreach (var port in project.EffectivePorts
+                .OrderBy(static value => value.Container))
+            {
+                table.AddRow(
+                    port.Container.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    port.EffectiveHost.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Markup.Escape(port.Bind));
+            }
+
+            AnsiConsole.Write(table);
+            return 0;
+        }
+
+        if (args.Length < 3 ||
+            !int.TryParse(
+                args[2],
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var containerPort))
+        {
+            throw new ArgumentException(
+                "A numeric container port is required.");
+        }
+
+        if (command == "add")
+        {
+            int? hostPort = null;
+            var hostText = GetOption(args, "--host");
+            if (hostText is not null)
+            {
+                if (!int.TryParse(
+                    hostText,
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var parsedHost))
+                {
+                    throw new ArgumentException("--host must be a numeric port.");
+                }
+
+                hostPort = parsedHost;
+            }
+
+            var updated = await projects.AddPortAsync(
+                projectId,
+                containerPort,
+                hostPort);
+            var added = updated.EffectivePorts.Single(
+                value => value.Container == containerPort);
+            AnsiConsole.MarkupLine(
+                $"[green]✓[/] 127.0.0.1:{added.EffectiveHost}:{added.Container}");
+            return 0;
+        }
+
+        if (command == "remove")
+        {
+            _ = await projects.RemovePortAsync(projectId, containerPort);
+            AnsiConsole.MarkupLine(
+                $"[green]✓[/] Removed container port {containerPort} from {Markup.Escape(projectId)}.");
+            return 0;
+        }
+
+        throw new ArgumentException(
+            "Usage: hstack port list|add|remove <project> [[containerPort]] [[--host <port>]]");
     }
 
     private static async Task<int> WorkspaceActionAsync(
@@ -1350,6 +1539,24 @@ internal static class HStackCli
         return 0;
     }
 
+    private static async Task<string?> SelectProjectAsync(
+        ProjectService projects,
+        string action)
+    {
+        var projectList = await projects.ListAsync();
+        if (projectList.Count == 0)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]![/] No projects are registered for {Markup.Escape(action)}.");
+            return null;
+        }
+
+        return AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title($"[bold]{Markup.Escape(action)}[/] — select project")
+                .AddChoices(projectList.Select(static project => project.Id)));
+    }
+
     private static string? GetOption(string[] args, string name)
     {
         var index = Array.IndexOf(args, name);
@@ -1399,6 +1606,9 @@ internal static class HStackCli
 
   hstack cert add <certificate.pem>
   hstack proxy show|set|disable
+  hstack port list <project>
+  hstack port add <project> <containerPort> [[--host <port>]]
+  hstack port remove <project> <containerPort>
   hstack secret set <NAME> --project <project> --agents <csv> --from-env <ENV>
   hstack secret list --project <project>
   hstack secret remove <NAME> --project <project>
@@ -1436,7 +1646,7 @@ internal static class HStackCli
   hstack update apply --yes
   hstack backup [[project]] [[--config-only]] [[--output <archive.zip>]] [[--json]]
   hstack restore <archive.zip> --yes
-  hstack export <environment.hstack> [[--include-secrets --passphrase-env <ENV>]]
+  hstack export <environment.hstack> [[--include-memory]] [[--include-secrets --passphrase-env <ENV>]]
   hstack import <environment.hstack> [[--map <old>=<new>]] [[--passphrase-env <ENV>]]
   hstack compose <project> config|ps|logs
   hstack compose <project> -- <arguments>
