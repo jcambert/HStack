@@ -8,11 +8,12 @@ M7 covers EPIC-016 through EPIC-020: managed updates, backup/restore/portability
 - Transactional workspace/toolchain apply flow with config backup, candidate image validation, running-workspace recreation, agent health checks and rollback.
 - Active toolchain lock override for reproducible managed updates.
 - Backup/restore, selective project backup, config-only backup and portable export/import with path remapping.
+- Portable memory is opt-in with `--include-memory`.
 - Optional secret portability uses AES-256-GCM with a PBKDF2-derived key and rehydrates values through the destination native secret store.
 - Full backups include durable OpenViking state; project source trees are excluded.
 - Application log under `.hstack/logs/hstack.log` with secret redaction.
 - Workspace logs through `hstack logs`.
-- Project list/show/add/edit/remove, restart, config validation, JSON status, safe Compose passthrough and managed cleanup.
+- Interactive Spectre.Console dashboard, project list/show/add/edit/remove, loopback port management, explicit agent status, restart, config validation, JSON status, safe Compose passthrough and managed cleanup.
 - Linux/Windows validation and self-contained win-x64/linux-x64/linux-arm64 delivery artifacts with SHA-256 manifests.
 
 ## Safety invariants
