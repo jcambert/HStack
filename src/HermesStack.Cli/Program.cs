@@ -166,7 +166,8 @@ internal static class HStackCli
                 securityEvaluator,
                 secretPolicies,
                 tokenService,
-                contextService);
+                contextService,
+                redactor);
             var archives = new BackupArchiveService(dataRoot);
             var portableSecrets = new PortableSecretPackageService(
                 projectStore,
