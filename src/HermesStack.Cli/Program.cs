@@ -168,7 +168,9 @@ internal static class HStackCli
                 tokenService,
                 contextService,
                 redactor);
-            var archives = new BackupArchiveService(dataRoot);
+            var archives = new BackupArchiveService(
+                dataRoot,
+                embeddedToolchainPath);
             var portableSecrets = new PortableSecretPackageService(
                 projectStore,
                 secretPolicies,
