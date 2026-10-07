@@ -10,7 +10,9 @@ public sealed record BackupArchiveResult(
     string? ProjectId,
     long Length);
 
-public sealed class BackupArchiveService(IDataRootProvider dataRoot)
+public sealed class BackupArchiveService(
+    IDataRootProvider dataRoot,
+    string? fallbackToolchainPath = null)
 {
     private static readonly string[] PortableRoots = ["config", "certs"];
 
@@ -118,6 +120,19 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
             {
                 var source = Path.Combine(dataRoot.Root, root);
                 AddDirectory(archive, source, root, cancellationToken);
+            }
+
+            var activeToolchain = Path.Combine(
+                dataRoot.ConfigDirectory,
+                "toolchain.lock.yaml");
+            if (!File.Exists(activeToolchain) &&
+                !string.IsNullOrWhiteSpace(fallbackToolchainPath) &&
+                File.Exists(fallbackToolchainPath))
+            {
+                archive.CreateEntryFromFile(
+                    fallbackToolchainPath,
+                    "config/toolchain.lock.yaml",
+                    CompressionLevel.Optimal);
             }
 
             if (includeProjectData)
