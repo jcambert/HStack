@@ -931,8 +931,24 @@ internal static class HStackCli
     private static async Task<int> UpdateAsync(
         string[] args,
         ToolchainVersions toolchain,
-        HStackConfigStore configStore)
+        HStackConfigStore configStore,
+        DefaultDataRootProvider dataRoot,
+        BackupArchiveService archives,
+        ProcessRunner processRunner,
+        CertificateBundleService certificateService,
+        ProjectService projects,
+        WorkspaceDeploymentPlanBuilder currentPlans,
+        DockerComposeWorkspaceOrchestrator currentOrchestrator,
+        HostMountValidator mountValidator,
+        string baseCompose,
+        LocalProtectedSecretStore secretStore)
     {
+        if (args.Length == 0)
+        {
+            throw new ArgumentException(
+                "Usage: hstack update check|plan|apply [[--json]] [[--yes]]");
+        }
+
         var proxy = ProxyConfigurationPolicy.ValidateAndNormalize(
             await configStore.GetAsync());
 
@@ -949,15 +965,384 @@ internal static class HStackCli
 
         using var client = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(15)
+            Timeout = TimeSpan.FromSeconds(30)
         };
         var lockService = new ToolchainLockService();
         var provider = new ToolchainUpdateMetadataProvider(client, lockService);
-        var service = new UpdateCheckService(provider);
+        var checkService = new UpdateCheckService(provider);
+        var planService = new UpdatePlanService(checkService);
+        var currentComponents =
+            ToolchainUpdateMetadataProvider.ToManagedComponents(toolchain);
         var cli = new HermesStack.Cli.UpdateCliService(
-            service,
-            ToolchainUpdateMetadataProvider.ToManagedComponents(toolchain));
-        return await cli.RunAsync(args);
+            checkService,
+            planService,
+            currentComponents);
+
+        if (!string.Equals(args[0], "apply", StringComparison.Ordinal))
+        {
+            return await cli.RunAsync(args);
+        }
+
+        if (!args.Contains("--yes", StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "HS7003: Update apply changes workspace images and requires --yes.");
+        }
+
+        var updatePlan = await planService.CreateAsync(currentComponents);
+        if (!updatePlan.HasChanges)
+        {
+            AnsiConsole.MarkupLine("[green]✓[/] No managed updates are required.");
+            return 0;
+        }
+
+        var manifestYaml = await provider.GetManifestYamlAsync();
+        var targetToolchain = lockService.Parse(manifestYaml);
+        var overridePath = Path.Combine(dataRoot.ConfigDirectory, "toolchain.lock.yaml");
+        var stagedPath = overridePath + ".pending";
+        var originalLock = File.Exists(overridePath)
+            ? await File.ReadAllBytesAsync(overridePath)
+            : null;
+
+        var backup = await archives.BackupAsync(configOnly: true);
+        var running = new List<(
+            HermesStack.Domain.Projects.ProjectDefinition Project,
+            WorkspaceDeploymentPlan Plan)>();
+        foreach (var project in await projects.ListAsync())
+        {
+            var oldPlan = await currentPlans.BuildAsync(project);
+            var status = await currentOrchestrator.GetStatusAsync(oldPlan);
+            if (status.State == WorkspaceState.Running)
+            {
+                running.Add((project, oldPlan));
+            }
+        }
+
+        Directory.CreateDirectory(dataRoot.ConfigDirectory);
+        await File.WriteAllTextAsync(stagedPath, manifestYaml);
+
+        string? candidateImage = null;
+        try
+        {
+            candidateImage = await BuildCandidateWorkspaceImageAsync(
+                processRunner,
+                certificateService,
+                targetToolchain,
+                stagedPath);
+
+            var targetContext = new OpenVikingServiceManager(
+                dataRoot,
+                secretStore,
+                processRunner,
+                targetToolchain.OpenVikingImage,
+                targetToolchain.OpenVikingVersion);
+            var candidatePlans = new WorkspaceDeploymentPlanBuilder(
+                dataRoot,
+                mountValidator,
+                certificateService,
+                baseCompose,
+                candidateImage,
+                configStore,
+                configStore);
+            var targetOrchestrator = new DockerComposeWorkspaceOrchestrator(
+                processRunner,
+                new ComposeOverrideWriter(),
+                targetContext);
+            var targetAgents = CreateAgentHarnessRegistry(targetOrchestrator);
+
+            foreach (var item in running)
+            {
+                await currentOrchestrator.DownAsync(item.Plan);
+            }
+
+            foreach (var item in running)
+            {
+                var targetPlan = await candidatePlans.BuildAsync(item.Project);
+                await targetOrchestrator.UpAsync(targetPlan);
+                var status = await targetOrchestrator.GetStatusAsync(targetPlan);
+                if (status.State != WorkspaceState.Running)
+                {
+                    throw new InvalidOperationException(
+                        $"HS7004: Updated workspace '{item.Project.Id}' failed health validation.");
+                }
+
+                foreach (var harness in targetAgents.All)
+                {
+                    var installation = await harness.InspectAsync(targetPlan);
+                    if (!installation.Installed)
+                    {
+                        throw new InvalidOperationException(
+                            $"HS7004: Agent '{harness.Id}' is unavailable after updating '{item.Project.Id}'.");
+                    }
+                }
+            }
+
+            var finalImage =
+                $"hstack/workspace-full:{targetToolchain.WorkspaceVersion}";
+            _ = await processRunner.RunAsync(
+                new ProcessRequest(
+                    "docker",
+                    ["tag", candidateImage, finalImage],
+                    ThrowOnError: true));
+
+            File.Move(stagedPath, overridePath, true);
+
+            var finalPlans = new WorkspaceDeploymentPlanBuilder(
+                dataRoot,
+                mountValidator,
+                certificateService,
+                baseCompose,
+                finalImage,
+                configStore,
+                configStore);
+            foreach (var item in running)
+            {
+                var finalPlan = await finalPlans.BuildAsync(item.Project);
+                await targetOrchestrator.UpAsync(finalPlan);
+            }
+
+            _ = await processRunner.RunAsync(
+                new ProcessRequest(
+                    "docker",
+                    ["image", "rm", candidateImage],
+                    ThrowOnError: false));
+
+            AnsiConsole.MarkupLine(
+                $"[green]✓[/] Managed toolchain updated transactionally. Backup: {Markup.Escape(backup.Path)}");
+            if (!string.Equals(
+                toolchain.WorkspaceVersion,
+                targetToolchain.WorkspaceVersion,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                AnsiConsole.MarkupLine(
+                    "[yellow]![/] The workspace/toolchain is updated. Install the matching HermesStack release package to update the CLI binary itself.");
+            }
+
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            if (File.Exists(stagedPath))
+            {
+                File.Delete(stagedPath);
+            }
+
+            if (originalLock is null)
+            {
+                if (File.Exists(overridePath))
+                {
+                    File.Delete(overridePath);
+                }
+            }
+            else
+            {
+                var rollbackPath = overridePath + ".rollback";
+                await File.WriteAllBytesAsync(rollbackPath, originalLock);
+                File.Move(rollbackPath, overridePath, true);
+            }
+
+            foreach (var item in running)
+            {
+                try
+                {
+                    await currentOrchestrator.UpAsync(item.Plan);
+                }
+                catch
+                {
+                    // Preserve the original update failure; rollback is best-effort.
+                }
+            }
+
+            if (candidateImage is not null)
+            {
+                _ = await processRunner.RunAsync(
+                    new ProcessRequest(
+                        "docker",
+                        ["image", "rm", candidateImage],
+                        ThrowOnError: false));
+            }
+
+            throw new InvalidOperationException(
+                $"HS7005: Update failed and rollback was attempted. Configuration backup: {backup.Path}",
+                exception);
+        }
+    }
+
+    private static async Task<string> BuildCandidateWorkspaceImageAsync(
+        ProcessRunner processRunner,
+        CertificateBundleService certificateService,
+        ToolchainVersions toolchain,
+        string toolchainPath)
+    {
+        var workspaceDir = Path.Combine(
+            AppContext.BaseDirectory,
+            "assets",
+            "docker",
+            "workspace");
+        var toolchainHash = Convert.ToHexString(
+            SHA256.HashData(await File.ReadAllBytesAsync(toolchainPath)))
+            .ToLowerInvariant();
+        var revision = Environment.GetEnvironmentVariable("HSTACK_REVISION")
+            ?? Environment.GetEnvironmentVariable("GITHUB_SHA")
+            ?? "local";
+
+        var commonBuildArgs = new List<string>
+        {
+            "--build-arg", $"HSTACK_VERSION={toolchain.WorkspaceVersion}",
+            "--build-arg", $"HSTACK_CREATED={DateTimeOffset.UtcNow:O}",
+            "--build-arg", $"HSTACK_REVISION={revision}",
+            "--build-arg", $"HSTACK_TOOLCHAIN_SHA256={toolchainHash}"
+        };
+
+        if (OperatingSystem.IsLinux())
+        {
+            var uid = await processRunner.RunAsync(new("id", ["-u"]));
+            var gid = await processRunner.RunAsync(new("id", ["-g"]));
+            if (!uid.IsSuccess ||
+                !gid.IsSuccess ||
+                !int.TryParse(uid.StandardOutput.Trim(), out var uidValue) ||
+                !int.TryParse(gid.StandardOutput.Trim(), out var gidValue) ||
+                uidValue <= 0 ||
+                gidValue <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Unable to determine the non-root Linux UID/GID for the workspace image.");
+            }
+
+            commonBuildArgs.AddRange(
+            [
+                "--build-arg", $"HSTACK_UID={uidValue}",
+                "--build-arg", $"HSTACK_GID={gidValue}"
+            ]);
+        }
+
+        var corporateBundle = await certificateService.BuildCorporateBundleAsync();
+        if (corporateBundle is not null)
+        {
+            commonBuildArgs.AddRange(
+                ["--secret", $"id=hstack_corporate_ca,src={corporateBundle}"]);
+        }
+
+        var baseTag = $"hstack/workspace-base:{toolchain.WorkspaceVersion}";
+        var candidateTag =
+            $"hstack/workspace-full:{toolchain.WorkspaceVersion}-candidate-{toolchainHash[..12]}";
+
+        await BuildImageAsync(
+            processRunner,
+            workspaceDir,
+            "Dockerfile.base",
+            baseTag,
+            commonBuildArgs);
+
+        await BuildImageAsync(
+            processRunner,
+            workspaceDir,
+            "Dockerfile.full",
+            candidateTag,
+            [
+                .. commonBuildArgs,
+                "--build-arg", $"HSTACK_WORKSPACE_VERSION={toolchain.WorkspaceVersion}",
+                "--build-arg", $"HERDR_VERSION={toolchain.HerdrVersion}",
+                "--build-arg", $"HERDR_SHA256_X64={toolchain.HerdrSha256X64}",
+                "--build-arg", $"HERDR_SHA256_ARM64={toolchain.HerdrSha256Arm64}",
+                "--build-arg", $"CLAUDE_CODE_VERSION={toolchain.ClaudeCodeVersion}",
+                "--build-arg", $"CODEX_VERSION={toolchain.CodexVersion}",
+                "--build-arg", $"HERMES_VERSION={toolchain.HermesVersion}",
+                "--build-arg", $"HERMES_RELEASE_TAG={toolchain.HermesReleaseTag}",
+                "--build-arg", $"HERMES_COMMIT={toolchain.HermesCommit}",
+                "--build-arg", $"OPENCODE_VERSION={toolchain.OpenCodeVersion}",
+                "--build-arg", $"RTK_VERSION={toolchain.RtkVersion}",
+                "--build-arg", $"RTK_RELEASE_TAG={toolchain.RtkReleaseTag}",
+                "--build-arg", $"RTK_SHA256_X64={toolchain.RtkSha256X64}",
+                "--build-arg", $"RTK_SHA256_ARM64={toolchain.RtkSha256Arm64}",
+                "--build-arg", $"CAVEMAN_VERSION={toolchain.CavemanVersion}",
+                "--build-arg", $"CAVEMAN_RELEASE_TAG={toolchain.CavemanReleaseTag}",
+                "--build-arg", $"CAVEMAN_COMMIT={toolchain.CavemanCommit}"
+            ]);
+
+        return candidateTag;
+    }
+
+    private static async Task<int> ComposeAsync(
+        string[] args,
+        ProjectService projects,
+        WorkspaceDeploymentPlanBuilder plans,
+        ProcessRunner processRunner)
+    {
+        if (args.Length < 2)
+        {
+            throw new ArgumentException(
+                "Usage: hstack compose <project> config|ps|logs | hstack compose <project> -- <arguments>");
+        }
+
+        var project = await projects.GetRequiredAsync(args[0]);
+        var plan = await plans.BuildAsync(project);
+        await new ComposeOverrideWriter().WriteAsync(plan);
+
+        string[] command;
+        if (args[1] == "--")
+        {
+            command = args[2..];
+            if (command.Length == 0)
+            {
+                throw new ArgumentException("Raw compose mode requires arguments after --.");
+            }
+        }
+        else
+        {
+            if (args[1] is not ("config" or "ps" or "logs"))
+            {
+                throw new ArgumentException(
+                    "Validated compose commands are config, ps and logs. Use -- for advanced raw mode.");
+            }
+
+            command = args[1..];
+        }
+
+        var composeArgs = new List<string>
+        {
+            "compose",
+            "-p", $"hstack-{project.Id}",
+            "-f", plan.BaseComposeFile,
+            "-f", plan.OverrideComposeFile
+        };
+        composeArgs.AddRange(command);
+        var result = await processRunner.RunAsync(
+            new ProcessRequest(
+                "docker",
+                composeArgs,
+                CaptureOutput: false));
+        return result.ExitCode;
+    }
+
+    private static async Task<int> CleanAsync(
+        string[] args,
+        ProcessRunner processRunner)
+    {
+        if (!args.Contains("--yes", StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Cleanup requires --yes and only targets stopped containers carrying io.hstack.managed=true.");
+        }
+
+        var result = await processRunner.RunAsync(
+            new ProcessRequest(
+                "docker",
+                [
+                    "container",
+                    "prune",
+                    "--force",
+                    "--filter", "label=io.hstack.managed=true"
+                ],
+                CaptureOutput: true));
+        if (!result.IsSuccess)
+        {
+            throw new InvalidOperationException(
+                $"Docker cleanup failed: {result.StandardError}");
+        }
+
+        AnsiConsole.MarkupLine("[green]✓[/] Stopped HermesStack-managed containers cleaned.");
+        return 0;
     }
 
     private static string? GetOption(string[] args, string name)
