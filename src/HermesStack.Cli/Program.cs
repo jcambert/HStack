@@ -192,7 +192,7 @@ internal static class HStackCli
                 "restart" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.RestartAsync(p, ct)),
                 "shell" => await ShellAsync(args[1..], projectService, planBuilder, orchestrator),
                 "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
-                "ps" => await StatusAsync(["--json", .. args[1..]], projectService, planBuilder, orchestrator, agents, integrations),
+                "ps" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
                 "logs" => await operationsCli.LogsAsync(args[1..]),
                 "agent" => await agentCli.AgentAsync(args[1..]),
                 "auth" => await agentCli.AuthAsync(args[1..]),
@@ -1365,12 +1365,18 @@ internal static class HStackCli
         AnsiConsole.MarkupLine("""
 [bold]hstack[/]
   hstack init [[--orchestrator compose]]
-  hstack project add <id> <hostPath>
-  hstack project list
+  hstack project list [[--json]]
+  hstack project show <id> [[--json]]
+  hstack project add <id> <hostPath> [[--name <name>]] [[--quiet]]
+  hstack project edit <id> [[--path <hostPath>]] [[--name <name>]]
+  hstack project remove <id> --yes
   hstack up <project>
   hstack down <project>
+  hstack restart <project>
   hstack shell <project>
-  hstack status [[project]]
+  hstack status [[project]] [[--json]] [[--quiet]]
+  hstack ps [[--json]]
+  hstack logs <project> [[--tail <n>]] [[--no-follow]] [[--agent <agent>]]
 
   hstack agent list [[--project <project>]]
   hstack agent run <agent> --project <project> [[-- <args>]]
@@ -1419,7 +1425,17 @@ internal static class HStackCli
   hstack context explain <project> [[--query <query>]] [[--agent <agent>]]
 
   hstack doctor [[project]] [[--network|--certificates|--security|--tokens|--memory]]
-  hstack update check
+  hstack config validate [[--json]]
+  hstack update check [[--json]]
+  hstack update plan [[--json]]
+  hstack update apply --yes
+  hstack backup [[project]] [[--config-only]] [[--output <archive.zip>]] [[--json]]
+  hstack restore <archive.zip> --yes
+  hstack export <environment.hstack>
+  hstack import <environment.hstack> [[--map <old>=<new>]]
+  hstack compose <project> config|ps|logs
+  hstack compose <project> -- <arguments>
+  hstack clean --yes
   hstack integrations list
   hstack version
 """);
