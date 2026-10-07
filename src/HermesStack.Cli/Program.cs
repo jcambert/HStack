@@ -1577,81 +1577,81 @@ internal static class HStackCli
 
     private static int ShowHelp()
     {
-        AnsiConsole.MarkupLine("""
-[bold]hstack[/]
-  hstack init [[--orchestrator compose]]
-  hstack project list [[--json]]
-  hstack project show <id> [[--json]]
-  hstack project add <id> <hostPath> [[--name <name>]] [[--quiet]]
-  hstack project edit <id> [[--path <hostPath>]] [[--name <name>]]
+        Console.Out.WriteLine("""
+hstack
+  hstack init [--orchestrator compose]
+  hstack project list [--json]
+  hstack project show <id> [--json]
+  hstack project add <id> <hostPath> [--name <name>] [--quiet]
+  hstack project edit <id> [--path <hostPath>] [--name <name>]
   hstack project remove <id> --yes
   hstack up <project>
   hstack down <project>
   hstack restart <project>
   hstack shell <project>
-  hstack status [[project]] [[--json]] [[--quiet]]
-  hstack ps [[--json]]
-  hstack logs <project> [[--tail <n>]] [[--no-follow]] [[--agent <agent>]]
+  hstack status [project] [--json] [--quiet]
+  hstack ps [--json]
+  hstack logs <project> [--tail <n>] [--no-follow] [--agent <agent>]
 
-  hstack agent list [[--project <project>]]
+  hstack agent list [--project <project>]
   hstack agent status --project <project>
-  hstack agent run <agent> --project <project> [[-- <args>]]
+  hstack agent run <agent> --project <project> [-- <args>]
   hstack auth <agent> --project <project>
 
   hstack session init|status|list|agents|stop <project>
-  hstack session run <agent> <project> --name <name> [[-- <args>]]
+  hstack session run <agent> <project> --name <name> [-- <args>]
   hstack herdr <project>
-  hstack tmux <project> [[session-name]]
+  hstack tmux <project> [session-name]
 
-  hstack claude <project> [[-- <args>]]
-  hstack codex <project> [[-- <args>]]
-  hstack hermes <project> [[-- <args>]]
-  hstack opencode <project> [[-- <args>]]
+  hstack claude <project> [-- <args>]
+  hstack codex <project> [-- <args>]
+  hstack hermes <project> [-- <args>]
+  hstack opencode <project> [-- <args>]
 
   hstack cert add <certificate.pem>
   hstack proxy show|set|disable
   hstack port list <project>
-  hstack port add <project> <containerPort> [[--host <port>]]
+  hstack port add <project> <containerPort> [--host <port>]
   hstack port remove <project> <containerPort>
   hstack secret set <NAME> --project <project> --agents <csv> --from-env <ENV>
   hstack secret list --project <project>
   hstack secret remove <NAME> --project <project>
   hstack security inspect <project>
   hstack token providers
-  hstack token status [[project]]
-  hstack token enable <project> [[--provider rtk]] [[--profile balanced]] [[--agents <csv>]]
-  hstack token disable <project> [[--provider rtk|caveman|all]]
+  hstack token status [project]
+  hstack token enable <project> [--provider rtk] [--profile balanced] [--agents <csv>]
+  hstack token disable <project> [--provider rtk|caveman|all]
   hstack token configure <project> --profile off|safe|balanced|aggressive|custom
   hstack token doctor <project>
   hstack token gain <project>
-  hstack token stats <project> [[--agent <agent>]]
+  hstack token stats <project> [--agent <agent>]
 
   hstack memory providers
-  hstack memory status [[project]]
+  hstack memory status [project]
   hstack memory enable|disable <project>
   hstack memory setup
   hstack memory stop
   hstack memory inspect <project>
-  hstack memory search <project> <query> [[--scope project|agent|shared|global]]
-  hstack memory scopes [[project]]
-  hstack memory doctor [[project]]
-  hstack memory write <project> <name> --content <text> [[--scope project|agent|shared]]
-  hstack memory share <project> <namespace> --with <project,...> [[--write]]
-  hstack memory export <project> [[output.ovpack]]
+  hstack memory search <project> <query> [--scope project|agent|shared|global]
+  hstack memory scopes [project]
+  hstack memory doctor [project]
+  hstack memory write <project> <name> --content <text> [--scope project|agent|shared]
+  hstack memory share <project> <namespace> --with <project,...> [--write]
+  hstack memory export <project> [output.ovpack]
   hstack memory import <project> <input.ovpack>
-  hstack memory clear <project> [[--yes]]
+  hstack memory clear <project> [--yes]
   hstack memory integrate <project> --agent claude|codex|hermes|opencode|all
-  hstack context explain <project> [[--query <query>]] [[--agent <agent>]]
+  hstack context explain <project> [--query <query>] [--agent <agent>]
 
-  hstack doctor [[project]] [[--network|--certificates|--security|--tokens|--memory]]
-  hstack config validate [[--json]]
-  hstack update check [[--json]]
-  hstack update plan [[--json]]
+  hstack doctor [project] [--network|--certificates|--security|--tokens|--memory]
+  hstack config validate [--json]
+  hstack update check [--json]
+  hstack update plan [--json]
   hstack update apply --yes
-  hstack backup [[project]] [[--config-only]] [[--output <archive.zip>]] [[--json]]
+  hstack backup [project] [--config-only] [--output <archive.zip>] [--json]
   hstack restore <archive.zip> --yes
-  hstack export <environment.hstack> [[--include-memory]] [[--include-secrets --passphrase-env <ENV>]]
-  hstack import <environment.hstack> [[--map <old>=<new>]] [[--passphrase-env <ENV>]]
+  hstack export <environment.hstack> [--include-memory] [--include-secrets --passphrase-env <ENV>]
+  hstack import <environment.hstack> [--map <old>=<new>] [--passphrase-env <ENV>]
   hstack compose <project> config|ps|logs
   hstack compose <project> -- <arguments>
   hstack clean --yes
