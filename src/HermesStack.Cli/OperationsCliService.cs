@@ -15,7 +15,10 @@ internal sealed class OperationsCliService(
 {
     public async Task<int> BackupAsync(string[] args)
     {
-        var projectId = args.FirstOrDefault(static value => !value.StartsWith("--", StringComparison.Ordinal));
+        var projectId = args.Length > 0 &&
+            !args[0].StartsWith("--", StringComparison.Ordinal)
+                ? args[0]
+                : null;
         var configOnly = args.Contains("--config-only", StringComparer.Ordinal);
         var output = GetOption(args, "--output");
         var json = args.Contains("--json", StringComparer.Ordinal);
