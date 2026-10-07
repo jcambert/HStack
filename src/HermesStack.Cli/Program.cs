@@ -834,7 +834,7 @@ internal static class HStackCli
         string[] args,
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
-        DockerComposeWorkspaceOrchestrator orchestrator)
+        IWorkspaceOrchestrator orchestrator)
     {
         if (args.Length == 0)
         {

@@ -88,6 +88,7 @@ public sealed class AspireDeploymentPlanWriter(
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                <AspireUseCliBundle>true</AspireUseCliBundle>
                 <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
               </PropertyGroup>
               <ItemGroup>
