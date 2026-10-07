@@ -66,10 +66,12 @@ internal sealed class OperationsCliService(
         if (args.Length == 0 || args[0].StartsWith("--", StringComparison.Ordinal))
         {
             throw new ArgumentException(
-                "Usage: hstack export <environment.hstack> [[--include-secrets --passphrase-env <ENV>]]");
+                "Usage: hstack export <environment.hstack> [[--include-memory]] [[--include-secrets --passphrase-env <ENV>]]");
         }
 
-        var result = await archives.ExportAsync(args[0]);
+        var result = await archives.ExportAsync(
+            args[0],
+            includeMemory: args.Contains("--include-memory", StringComparer.Ordinal));
         var exportedSecrets = 0;
         if (args.Contains("--include-secrets", StringComparer.Ordinal))
         {
