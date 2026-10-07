@@ -11,7 +11,8 @@ internal sealed class OperationsCliService(
     ProjectService projects,
     WorkspaceDeploymentPlanBuilder plans,
     IWorkspaceOrchestrator orchestrator,
-    BackupArchiveService archives)
+    BackupArchiveService archives,
+    PortableSecretPackageService secretPackages)
 {
     public async Task<int> BackupAsync(string[] args)
     {
@@ -64,18 +65,28 @@ internal sealed class OperationsCliService(
     {
         if (args.Length == 0 || args[0].StartsWith("--", StringComparison.Ordinal))
         {
-            throw new ArgumentException("Usage: hstack export <environment.hstack>");
-        }
-
-        if (args.Contains("--include-secrets", StringComparer.Ordinal))
-        {
-            throw new NotSupportedException(
-                "HS8006: Portable secret export requires encrypted secret packaging and is intentionally disabled.");
+            throw new ArgumentException(
+                "Usage: hstack export <environment.hstack> [[--include-secrets --passphrase-env <ENV>]]");
         }
 
         var result = await archives.ExportAsync(args[0]);
+        var exportedSecrets = 0;
+        if (args.Contains("--include-secrets", StringComparer.Ordinal))
+        {
+            var passphrase = RequiredPassphrase(args);
+            exportedSecrets = await secretPackages.ExportAsync(
+                result.Path,
+                passphrase);
+        }
+
         AnsiConsole.MarkupLine(
             $"[green]✓[/] Portable environment exported: {Markup.Escape(result.Path)}");
+        if (exportedSecrets > 0)
+        {
+            AnsiConsole.MarkupLine(
+                $"[green]✓[/] {exportedSecrets} secret value(s) included in an AES-256-GCM encrypted package.");
+        }
+
         return 0;
     }
 
@@ -87,6 +98,16 @@ internal sealed class OperationsCliService(
         }
 
         await archives.ImportAsync(args[0]);
+
+        if (PortableSecretPackageService.ContainsEncryptedSecrets(args[0]))
+        {
+            var passphrase = RequiredPassphrase(args);
+            var importedSecrets = await secretPackages.ImportAsync(
+                args[0],
+                passphrase);
+            AnsiConsole.MarkupLine(
+                $"[green]✓[/] {importedSecrets} encrypted secret value(s) imported through the native secret store.");
+        }
 
         var mappings = GetOptions(args, "--map")
             .Select(ParseMapping)
@@ -158,6 +179,25 @@ internal sealed class OperationsCliService(
                 plan,
                 Follow: !args.Contains("--no-follow", StringComparer.Ordinal),
                 Tail: tail));
+    }
+
+    private static string RequiredPassphrase(string[] args)
+    {
+        var environmentName = GetOption(args, "--passphrase-env");
+        if (string.IsNullOrWhiteSpace(environmentName))
+        {
+            throw new InvalidOperationException(
+                "HS8007: Encrypted secret portability requires --passphrase-env <ENV>.");
+        }
+
+        var passphrase = Environment.GetEnvironmentVariable(environmentName);
+        if (string.IsNullOrEmpty(passphrase))
+        {
+            throw new InvalidOperationException(
+                $"HS8007: Passphrase environment variable '{environmentName}' is empty or missing.");
+        }
+
+        return passphrase;
     }
 
     private static (string OldPath, string NewPath) ParseMapping(string value)
