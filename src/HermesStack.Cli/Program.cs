@@ -21,11 +21,13 @@ using HermesStack.Infrastructure.Configuration;
 using HermesStack.Infrastructure.Processes;
 using HermesStack.Infrastructure.Projects;
 using HermesStack.Infrastructure.Security;
+using HermesStack.Infrastructure.Operations;
 using HermesStack.Infrastructure.Tokens;
 using HermesStack.Infrastructure.Updates;
 using Spectre.Console;
 using System.Net;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 return await HStackCli.RunAsync(args);
 
@@ -34,9 +36,15 @@ internal static class HStackCli
     public static async Task<int> RunAsync(string[] args)
     {
         var redactor = new SecretRedactor();
+        ApplicationLogService? appLog = null;
         try
         {
             var dataRoot = new DefaultDataRootProvider(Environment.GetEnvironmentVariable("HSTACK_HOME"));
+            appLog = new ApplicationLogService(dataRoot, redactor);
+            await appLog.WriteAsync(
+                "info",
+                "command",
+                args.Length == 0 ? "dashboard" : args[0]);
             var initializer = new HStackInitializer(dataRoot);
             var mountValidator = new HostMountValidator(new HostMountPolicy());
             var projectStore = new YamlProjectStore(dataRoot);
@@ -50,8 +58,13 @@ internal static class HStackCli
             var tokenStore = new YamlTokenOptimizationStore(dataRoot);
             var tokenMetricStore = new JsonlTokenMetricStore(dataRoot);
             var baseCompose = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "compose", "compose.yaml");
-            var toolchainPath = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
-            var toolchain = new ToolchainLockService().Load(toolchainPath);
+            var embeddedToolchainPath = Path.Combine(AppContext.BaseDirectory, "assets", "toolchain.lock.yaml");
+            var toolchainOverridePath = Path.Combine(dataRoot.ConfigDirectory, "toolchain.lock.yaml");
+            var lockService = new ToolchainLockService();
+            var toolchain = lockService.LoadEffective(embeddedToolchainPath, toolchainOverridePath);
+            var effectiveToolchainPath = File.Exists(toolchainOverridePath)
+                ? toolchainOverridePath
+                : embeddedToolchainPath;
             var openVikingManager = new OpenVikingServiceManager(
                 dataRoot,
                 secretStore,
@@ -154,6 +167,15 @@ internal static class HStackCli
                 secretPolicies,
                 tokenService,
                 contextService);
+            var archives = new BackupArchiveService(dataRoot);
+            var operationsCli = new HermesStack.Cli.OperationsCliService(
+                projectService,
+                planBuilder,
+                orchestrator,
+                archives);
+            var configCli = new HermesStack.Cli.ConfigCliService(
+                configStore,
+                projectService);
 
             if (args.Length == 0)
             {
@@ -163,12 +185,15 @@ internal static class HStackCli
 
             return args[0] switch
             {
-                "init" => await InitAsync(args[1..], initializer, processRunner, toolchain, toolchainPath, certificateService),
+                "init" => await InitAsync(args[1..], initializer, processRunner, toolchain, effectiveToolchainPath, certificateService),
                 "project" => await ProjectAsync(args[1..], projectService),
                 "up" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.UpAsync(p, ct)),
                 "down" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.DownAsync(p, ct)),
+                "restart" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.RestartAsync(p, ct)),
                 "shell" => await ShellAsync(args[1..], projectService, planBuilder, orchestrator),
                 "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
+                "ps" => await StatusAsync(["--json", .. args[1..]], projectService, planBuilder, orchestrator, agents, integrations),
+                "logs" => await operationsCli.LogsAsync(args[1..]),
                 "agent" => await agentCli.AgentAsync(args[1..]),
                 "auth" => await agentCli.AuthAsync(args[1..]),
                 "session" => await sessionCli.SessionAsync(args[1..]),
@@ -186,7 +211,27 @@ internal static class HStackCli
                 "memory" => await memoryCli.RunAsync(args[1..]),
                 "context" => await contextCli.RunAsync(args[1..]),
                 "doctor" => await doctorCli.RunAsync(args[1..]),
-                "update" => await UpdateAsync(args[1..], toolchain, configStore),
+                "config" => await configCli.RunAsync(args[1..]),
+                "update" => await UpdateAsync(
+                    args[1..],
+                    toolchain,
+                    configStore,
+                    dataRoot,
+                    archives,
+                    processRunner,
+                    certificateService,
+                    projectService,
+                    planBuilder,
+                    orchestrator,
+                    mountValidator,
+                    baseCompose,
+                    secretStore),
+                "backup" => await operationsCli.BackupAsync(args[1..]),
+                "restore" => await operationsCli.RestoreAsync(args[1..]),
+                "export" => await operationsCli.ExportAsync(args[1..]),
+                "import" => await operationsCli.ImportAsync(args[1..]),
+                "compose" => await ComposeAsync(args[1..], projectService, planBuilder, processRunner),
+                "clean" => await CleanAsync(args[1..], processRunner),
                 "integrations" => Integrations(args[1..], integrations),
                 "version" or "--version" or "-v" => ShowVersion(toolchain.WorkspaceVersion),
                 "help" or "--help" or "-h" => ShowHelp(),
@@ -195,8 +240,14 @@ internal static class HStackCli
         }
         catch (Exception exception)
         {
+            var safeMessage = redactor.Redact(exception.Message);
+            if (appLog is not null)
+            {
+                await appLog.WriteAsync("error", "command-failed", safeMessage);
+            }
+
             AnsiConsole.MarkupLine(
-                $"[red]ERROR[/] {Markup.Escape(redactor.Redact(exception.Message))}");
+                $"[red]ERROR[/] {Markup.Escape(safeMessage)}");
             return 1;
         }
     }
