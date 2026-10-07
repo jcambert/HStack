@@ -1,6 +1,6 @@
 schemaVersion: 1
 workspace:
-  version: "0.7.0"
+  version: "0.8.0"
 runtime:
   node:
     version: "24.21.0"
@@ -9,6 +9,9 @@ runtime:
     version: "hermes-managed-compatible"
     source: "Hermes pinned release environment"
 tools:
+  aspire:
+    version: "13.6.0"
+    source: "NuGet:Aspire.Cli and Aspire.AppHost.Sdk stable release"
   hermes:
     version: "0.21.5"
     releaseTag: "v2026.9.24"

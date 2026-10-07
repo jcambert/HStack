@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-m7:
+  linux-m8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -46,8 +46,14 @@ jobs:
         run: bash tests/e2e/m5-smoke.sh
       - name: M6 Shared Context end-to-end gate
         run: bash tests/e2e/m6-smoke.sh
-      - name: M7 Operations end-to-end gate
+      - name: M7 Operations regression gate
         run: bash tests/e2e/m7-update-check-smoke.sh
+      - name: Install pinned Aspire CLI
+        run: dotnet tool install Aspire.Cli --version 13.6.0 --tool-path .tools
+      - name: M8 Aspire Experience end-to-end gate
+        run: |
+          export PATH="$PWD/.tools:$PATH"
+          bash tests/e2e/m8-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
@@ -64,7 +70,7 @@ jobs:
   publish-artifacts:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs:
-      - linux-m7
+      - linux-m8
       - windows-compile
     runs-on: ubuntu-latest
     strategy:
