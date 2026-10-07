@@ -86,6 +86,68 @@ public sealed partial class ProjectService(IProjectStore store, HostMountValidat
         await store.RemoveAsync(id, cancellationToken);
     }
 
+    public async Task<ProjectDefinition> AddPortAsync(
+        string id,
+        int containerPort,
+        int? hostPort = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePort(containerPort, nameof(containerPort));
+        var effectiveHost = hostPort ?? containerPort;
+        ValidatePort(effectiveHost, nameof(hostPort));
+
+        var current = await GetRequiredAsync(id, cancellationToken);
+        if (current.EffectivePorts.Any(port =>
+            port.Container == containerPort ||
+            port.EffectiveHost == effectiveHost))
+        {
+            throw new InvalidOperationException(
+                $"Project '{id}' already declares container port {containerPort} or host port {effectiveHost}.");
+        }
+
+        var updated = current with
+        {
+            Ports =
+            [
+                .. current.EffectivePorts,
+                new ProjectPort(containerPort, effectiveHost, "127.0.0.1")
+            ]
+        };
+        await store.SaveAsync(updated, cancellationToken);
+        return updated;
+    }
+
+    public async Task<ProjectDefinition> RemovePortAsync(
+        string id,
+        int containerPort,
+        CancellationToken cancellationToken = default)
+    {
+        ValidatePort(containerPort, nameof(containerPort));
+        var current = await GetRequiredAsync(id, cancellationToken);
+        var ports = current.EffectivePorts
+            .Where(port => port.Container != containerPort)
+            .ToArray();
+        if (ports.Length == current.EffectivePorts.Count)
+        {
+            throw new KeyNotFoundException(
+                $"Project '{id}' does not declare container port {containerPort}.");
+        }
+
+        var updated = current with { Ports = ports };
+        await store.SaveAsync(updated, cancellationToken);
+        return updated;
+    }
+
+    private static void ValidatePort(int port, string parameterName)
+    {
+        if (port is < 1 or > 65535)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Ports must be between 1 and 65535.");
+        }
+    }
+
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{0,62}$", RegexOptions.CultureInvariant)]
     private static partial Regex ProjectIdRegex();
 }
