@@ -73,14 +73,32 @@ public sealed class BackupArchiveServiceTests
             await File.WriteAllTextAsync(
                 Path.Combine(dataRoot.GetProjectDataRoot("demo"), "state.txt"),
                 "state");
+            var memoryRoot = Path.Combine(root, "data", "openviking");
+            Directory.CreateDirectory(memoryRoot);
+            await File.WriteAllTextAsync(
+                Path.Combine(memoryRoot, "memory.db"),
+                "memory");
 
+            var service = new BackupArchiveService(dataRoot);
             var output = Path.Combine(root, "portable.hstack");
-            await new BackupArchiveService(dataRoot).ExportAsync(output);
+            await service.ExportAsync(output);
 
-            using var archive = System.IO.Compression.ZipFile.OpenRead(output);
-            Assert.Contains(archive.Entries, entry => entry.FullName == "config/hstack.yaml");
-            Assert.DoesNotContain(archive.Entries, entry => entry.FullName.StartsWith("secrets/", StringComparison.Ordinal));
-            Assert.DoesNotContain(archive.Entries, entry => entry.FullName.StartsWith("data/", StringComparison.Ordinal));
+            using (var archive = System.IO.Compression.ZipFile.OpenRead(output))
+            {
+                Assert.Contains(archive.Entries, entry => entry.FullName == "config/hstack.yaml");
+                Assert.DoesNotContain(archive.Entries, entry => entry.FullName.StartsWith("secrets/", StringComparison.Ordinal));
+                Assert.DoesNotContain(archive.Entries, entry => entry.FullName.StartsWith("data/", StringComparison.Ordinal));
+            }
+
+            var withMemory = Path.Combine(root, "portable-with-memory.hstack");
+            await service.ExportAsync(withMemory, includeMemory: true);
+            using var memoryArchive = System.IO.Compression.ZipFile.OpenRead(withMemory);
+            Assert.Contains(
+                memoryArchive.Entries,
+                entry => entry.FullName == "data/openviking/memory.db");
+            Assert.DoesNotContain(
+                memoryArchive.Entries,
+                entry => entry.FullName.StartsWith("data/projects/", StringComparison.Ordinal));
         }
         finally
         {
