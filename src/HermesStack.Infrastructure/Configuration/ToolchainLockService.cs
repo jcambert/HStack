@@ -47,6 +47,12 @@ public sealed class ToolchainLockService
         return Parse(File.ReadAllText(path));
     }
 
+    public ToolchainVersions LoadEffective(string embeddedPath, string overridePath)
+    {
+        var effectivePath = File.Exists(overridePath) ? overridePath : embeddedPath;
+        return Load(effectivePath);
+    }
+
     public ToolchainVersions Parse(string yaml)
     {
         if (string.IsNullOrWhiteSpace(yaml))
