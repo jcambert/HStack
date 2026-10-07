@@ -8,6 +8,7 @@ M7 covers EPIC-016 through EPIC-020: managed updates, backup/restore/portability
 - Transactional workspace/toolchain apply flow with config backup, candidate image validation, running-workspace recreation, agent health checks and rollback.
 - Active toolchain lock override for reproducible managed updates.
 - Backup/restore, selective project backup, config-only backup and portable export/import with path remapping.
+- Optional secret portability uses AES-256-GCM with a PBKDF2-derived key and rehydrates values through the destination native secret store.
 - Full backups include durable OpenViking state; project source trees are excluded.
 - Application log under `.hstack/logs/hstack.log` with secret redaction.
 - Workspace logs through `hstack logs`.
@@ -19,7 +20,7 @@ M7 covers EPIC-016 through EPIC-020: managed updates, backup/restore/portability
 - Update metadata remains HTTPS-only and parsed by the pinned toolchain validator.
 - Candidate workspace image is health-checked before replacing the active tag.
 - Rollback restores the prior active lock and attempts to recreate previously running workspaces with their old plan.
-- Portable export excludes secrets; unsafe plaintext `--include-secrets` is rejected.
+- Portable export excludes secrets by default; `--include-secrets` requires a passphrase environment source and an authenticated encrypted package.
 - Restore rejects unsupported/traversal archive entries.
 - Cleanup targets only stopped containers with `io.hstack.managed=true`.
 - Project removal unregisters metadata and never deletes project source.
