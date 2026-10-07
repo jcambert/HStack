@@ -56,6 +56,41 @@ public sealed class BackupArchiveServiceTests
     }
 
     [Fact]
+    public async Task Export_includes_embedded_toolchain_when_no_active_override_exists()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "hstack-tests",
+            Guid.NewGuid().ToString("N"));
+        try
+        {
+            var dataRoot = new DefaultDataRootProvider(root);
+            Directory.CreateDirectory(dataRoot.ConfigDirectory);
+            await File.WriteAllTextAsync(dataRoot.MainConfigFile, "schemaVersion: 1\n");
+            var embedded = Path.Combine(root, "embedded-toolchain.lock.yaml");
+            await File.WriteAllTextAsync(
+                embedded,
+                "schemaVersion: 1\nworkspace:\n  version: \"0.7.0\"\n");
+
+            var output = Path.Combine(root, "portable.hstack");
+            await new BackupArchiveService(dataRoot, embedded)
+                .ExportAsync(output);
+
+            using var archive = System.IO.Compression.ZipFile.OpenRead(output);
+            Assert.Contains(
+                archive.Entries,
+                entry => entry.FullName == "config/toolchain.lock.yaml");
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Portable_export_excludes_project_state_and_secrets()
     {
         var root = Path.Combine(
