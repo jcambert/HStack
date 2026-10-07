@@ -26,7 +26,8 @@ internal sealed class DoctorCliService(
     SecurityInspectionService securityEvaluator,
     ISecretPolicyStore secretPolicies,
     TokenOptimizationService tokenOptimization,
-    ContextService contextService)
+    ContextService contextService,
+    ISecretRedactor redactor)
 {
     public async Task<int> RunAsync(string[] args)
     {
@@ -137,7 +138,7 @@ internal sealed class DoctorCliService(
             await AddMemoryChecksAsync(projectId, checks);
         }
 
-        Render(checks);
+        Render(checks, redactor);
         return checks.Any(static value => value.Status == DoctorStatus.Fail) ? 1 : 0;
     }
 
@@ -429,7 +430,9 @@ internal sealed class DoctorCliService(
             .FirstOrDefault()
         ?? "-";
 
-    private static void Render(IReadOnlyList<DoctorCheck> checks)
+    private static void Render(
+        IReadOnlyList<DoctorCheck> checks,
+        ISecretRedactor redactor)
     {
         var table = new Table()
             .AddColumn("Section")
@@ -449,7 +452,7 @@ internal sealed class DoctorCliService(
                 Markup.Escape(check.Section),
                 Markup.Escape(check.Name),
                 status,
-                Markup.Escape(check.Details));
+                Markup.Escape(redactor.Redact(check.Details)));
         }
 
         AnsiConsole.Write(table);

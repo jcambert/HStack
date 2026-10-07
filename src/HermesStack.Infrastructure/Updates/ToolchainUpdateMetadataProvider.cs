@@ -19,6 +19,15 @@ public sealed class ToolchainUpdateMetadataProvider(
     public string Source => _manifestUri.ToString();
 
     public async Task<IReadOnlyList<ManagedComponentVersion>> GetAvailableVersionsAsync(
+        CancellationToken cancellationToken = default) =>
+        ToManagedComponents(
+            await GetAvailableToolchainAsync(cancellationToken));
+
+    public async Task<ToolchainVersions> GetAvailableToolchainAsync(
+        CancellationToken cancellationToken = default) =>
+        lockService.Parse(await GetManifestYamlAsync(cancellationToken));
+
+    public async Task<string> GetManifestYamlAsync(
         CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.GetAsync(
@@ -40,7 +49,8 @@ public sealed class ToolchainUpdateMetadataProvider(
                 "HS7001: Update manifest exceeds the allowed size.");
         }
 
-        return ToManagedComponents(lockService.Parse(yaml));
+        _ = lockService.Parse(yaml);
+        return yaml;
     }
 
     public static IReadOnlyList<ManagedComponentVersion> ToManagedComponents(

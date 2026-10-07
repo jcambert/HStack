@@ -23,10 +23,18 @@ internal sealed class AgentCliService(
             return await ListAsync(args);
         }
 
+        if (args[0] == "status")
+        {
+            _ = GetOption(args, "--project")
+                ?? throw new ArgumentException(
+                    "Usage: hstack agent status --project <project>");
+            return await ListAsync(args);
+        }
+
         if (args[0] != "run" || args.Length < 2)
         {
             throw new ArgumentException(
-                "Usage: hstack agent list [--project <project>] | hstack agent run <agent> --project <project> [-- <args>]");
+                "Usage: hstack agent list [--project <project>] | hstack agent status --project <project> | hstack agent run <agent> --project <project> [-- <args>]");
         }
 
         var projectId = GetOption(args, "--project")
