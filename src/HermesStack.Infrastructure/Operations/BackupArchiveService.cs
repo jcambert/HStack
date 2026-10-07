@@ -28,13 +28,15 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
 
     public Task<BackupArchiveResult> ExportAsync(
         string outputPath,
+        bool includeMemory = false,
         CancellationToken cancellationToken = default) =>
         CreateAsync(
             kind: "portable-export",
             projectId: null,
             includeProjectData: false,
             outputPath,
-            cancellationToken);
+            cancellationToken,
+            includeMemory);
 
     public async Task RestoreAsync(
         string archivePath,
@@ -84,7 +86,8 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
         string? projectId,
         bool includeProjectData,
         string? outputPath,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeMemory = false)
     {
         var backupsRoot = Path.Combine(dataRoot.Root, "backups");
         Directory.CreateDirectory(backupsRoot);
@@ -140,6 +143,14 @@ public sealed class BackupArchiveService(IDataRootProvider dataRoot)
                         $"data/projects/{projectId}",
                         cancellationToken);
                 }
+            }
+            else if (includeMemory)
+            {
+                AddDirectory(
+                    archive,
+                    Path.Combine(dataRoot.Root, "data", "openviking"),
+                    "data/openviking",
+                    cancellationToken);
             }
         }
 
