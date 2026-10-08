@@ -27,6 +27,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 var workspace = builder
     .AddContainer("workspace", document.WorkspaceImage)
     .WithContainerName($"hstack-{document.ProjectId}-workspace")
+    // HStack manages its own CA trust. Aspire's automatic certificate injection uses
+    // docker cp, which fails for containers with a read-only root filesystem.
+    .WithCertificateTrustScope(CertificateTrustScope.None)
     .WithContainerRuntimeArgs(
         "--init",
         "--read-only",
