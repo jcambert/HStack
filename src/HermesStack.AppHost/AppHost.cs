@@ -29,7 +29,9 @@ var workspace = builder
     .WithContainerName($"hstack-{document.ProjectId}-workspace")
     // HStack manages its own CA trust. Aspire's automatic certificate injection uses
     // docker cp, which fails for containers with a read-only root filesystem.
+    #pragma warning disable ASPIRECERTIFICATES001 // Explicitly opt in to Aspire's experimental certificate bypass for read-only containers.
     .WithoutHttpsCertificate()
+    #pragma warning restore ASPIRECERTIFICATES001
     .WithCertificateTrustScope(CertificateTrustScope.None)
     .WithContainerRuntimeArgs(
         "--init",
