@@ -33,7 +33,7 @@ run_hstack() {
 }
 
 echo '[M8] Initialize Aspire as the default orchestrator'
-run_hstack init --orchestrator aspire >"$output_file"
+run_hstack init --orchestrator aspire --ci-base-image-only >"$output_file"
 grep -q 'Aspire' "$output_file"
 grep -q 'default: aspire' "$home_dir/config/hstack.yaml"
 grep -q 'exposeToLan: false' "$home_dir/config/hstack.yaml"

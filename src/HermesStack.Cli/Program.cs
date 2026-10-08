@@ -542,6 +542,19 @@ internal static class HStackCli
             baseTag,
             commonBuildArgs);
 
+        if (args.Contains("--ci-base-image-only", StringComparer.Ordinal))
+        {
+            if (!string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("--ci-base-image-only is restricted to CI.");
+            }
+
+            await processRunner.RunAsync(new(
+                "docker", ["tag", baseTag, fullTag], ThrowOnError: true));
+            AnsiConsole.MarkupLine("[yellow]![/] CI smoke mode: full agent image build skipped; base image substituted.");
+            return 0;
+        }
+
         await BuildImageAsync(
             processRunner,
             workspaceDir,
