@@ -15,6 +15,9 @@ on_exit() {
     echo '[M8] Workspace container status:' >&2
     docker ps -a --filter 'name=hstack-aspire-demo' >&2 || true
     docker logs --tail 80 hstack-aspire-demo-workspace >&2 || true
+    echo '[M8] OpenViking container status and startup errors:' >&2
+    docker ps -a --filter 'name=hstack-memory-openviking' >&2 || true
+    docker logs --tail 60 hstack-memory-openviking >&2 || true
   fi
   rm -f "$output_file"
   rm -rf "$home_dir" "$project_dir"
@@ -42,6 +45,29 @@ grep -q 'aspire' "$output_file"
 run_hstack plan aspire-demo --orchestrator aspire >"$output_file"
 grep -q 'no-new-privileges' "$output_file"
 grep -q 'deployment.json' "$output_file"
+
+echo '[M8] Configure OpenViking with test-only local model endpoints'
+mkdir -p "$home_dir/data/openviking"
+cat >"$home_dir/data/openviking/ov.conf" <<'JSON'
+{
+  "embedding": {
+    "dense": {
+      "provider": "ollama",
+      "model": "nomic-embed-text",
+      "dimension": 768,
+      "api_base": "http://127.0.0.1:11434"
+    }
+  },
+  "vlm": {
+    "provider": "ollama",
+    "model": "llama3.2",
+    "api_base": "http://127.0.0.1:11434"
+  },
+  "storage": {
+    "workspace": "/app/.openviking/data"
+  }
+}
+JSON
 
 echo '[M8] Enable shared context before Aspire startup'
 run_hstack memory enable aspire-demo >"$output_file"
