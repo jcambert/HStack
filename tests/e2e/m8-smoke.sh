@@ -7,7 +7,19 @@ aspire --version | grep -F '13.6.0'
 output_file="$(mktemp)"
 home_dir="$(mktemp -d)"
 project_dir="$(mktemp -d)"
-trap 'rm -f "$output_file"; rm -rf "$home_dir" "$project_dir"' EXIT
+on_exit() {
+  result=$?
+  if (( result != 0 )); then
+    echo '[M8] Failed command output:' >&2
+    cat "$output_file" >&2 || true
+    echo '[M8] Workspace container status:' >&2
+    docker ps -a --filter 'name=hstack-aspire-demo' >&2 || true
+    docker logs --tail 80 hstack-aspire-demo-workspace >&2 || true
+  fi
+  rm -f "$output_file"
+  rm -rf "$home_dir" "$project_dir"
+}
+trap on_exit EXIT
 
 run_hstack() {
   HSTACK_HOME="$home_dir" dotnet run \
