@@ -29,6 +29,7 @@ var workspace = builder
     .WithContainerName($"hstack-{document.ProjectId}-workspace")
     // HStack manages its own CA trust. Aspire's automatic certificate injection uses
     // docker cp, which fails for containers with a read-only root filesystem.
+    .WithoutHttpsCertificate()
     .WithCertificateTrustScope(CertificateTrustScope.None)
     .WithContainerRuntimeArgs(
         "--init",
@@ -39,8 +40,7 @@ var workspace = builder
         "--cpus", document.Resources.Cpus.ToString(System.Globalization.CultureInfo.InvariantCulture),
         "--memory", document.Resources.Memory,
         "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m",
-        "--tmpfs", "/var/tmp:rw,noexec,nosuid,nodev,size=256m",
-        "--tmpfs", "/usr/lib/ssl/aspire:rw,noexec,nosuid,nodev,size=16m");
+        "--tmpfs", "/var/tmp:rw,noexec,nosuid,nodev,size=256m");
 
 foreach (var mount in document.Mounts)
 {
