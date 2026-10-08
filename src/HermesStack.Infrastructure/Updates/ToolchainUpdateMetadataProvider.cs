@@ -19,9 +19,19 @@ public sealed class ToolchainUpdateMetadataProvider(
     public string Source => _manifestUri.ToString();
 
     public async Task<IReadOnlyList<ManagedComponentVersion>> GetAvailableVersionsAsync(
-        CancellationToken cancellationToken = default) =>
-        ToManagedComponents(
-            await GetAvailableToolchainAsync(cancellationToken));
+        CancellationToken cancellationToken = default)
+    {
+        var yaml = await DownloadManifestYamlAsync(cancellationToken);
+        var (toolchain, hasAspire) = lockService.ParseForUpdateCheck(yaml);
+        var components = ToManagedComponents(toolchain);
+
+        return hasAspire
+            ? components
+            : components
+                .Where(static component =>
+                    !string.Equals(component.Id, "aspire", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+    }
 
     public async Task<ToolchainVersions> GetAvailableToolchainAsync(
         CancellationToken cancellationToken = default) =>
@@ -29,6 +39,14 @@ public sealed class ToolchainUpdateMetadataProvider(
 
     public async Task<string> GetManifestYamlAsync(
         CancellationToken cancellationToken = default)
+    {
+        var yaml = await DownloadManifestYamlAsync(cancellationToken);
+        _ = lockService.Parse(yaml);
+        return yaml;
+    }
+
+    private async Task<string> DownloadManifestYamlAsync(
+        CancellationToken cancellationToken)
     {
         using var response = await httpClient.GetAsync(
             _manifestUri,
@@ -49,7 +67,6 @@ public sealed class ToolchainUpdateMetadataProvider(
                 "HS7001: Update manifest exceeds the allowed size.");
         }
 
-        _ = lockService.Parse(yaml);
         return yaml;
     }
 
