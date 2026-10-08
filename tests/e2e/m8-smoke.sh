@@ -12,6 +12,16 @@ on_exit() {
   if (( result != 0 )); then
     echo '[M8] Failed command output:' >&2
     cat "$output_file" >&2 || true
+    echo '[M8] Aspire CLI and AppHost startup diagnostics:' >&2
+    if [[ -d "$HOME/.aspire/logs" ]]; then
+      find "$HOME/.aspire/logs" -maxdepth 1 -type f -name '*.log' -mmin -20 -print |
+        while IFS= read -r logfile; do
+          echo "[M8] Log: $(basename "$logfile")" >&2
+          tail -n 100 "$logfile" >&2 || true
+        done
+    fi
+    echo '[M8] Docker containers:' >&2
+    docker ps -a >&2 || true
     echo '[M8] Workspace container status:' >&2
     docker ps -a --filter 'name=hstack-aspire-demo' >&2 || true
     docker logs --tail 80 hstack-aspire-demo-workspace >&2 || true
