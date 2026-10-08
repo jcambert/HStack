@@ -36,7 +36,8 @@ var workspace = builder
         "--cpus", document.Resources.Cpus.ToString(System.Globalization.CultureInfo.InvariantCulture),
         "--memory", document.Resources.Memory,
         "--tmpfs", "/tmp:rw,nosuid,nodev,size=512m",
-        "--tmpfs", "/var/tmp:rw,noexec,nosuid,nodev,size=256m");
+        "--tmpfs", "/var/tmp:rw,noexec,nosuid,nodev,size=256m",
+        "--tmpfs", "/usr/lib/ssl/aspire:rw,noexec,nosuid,nodev,size=16m");
 
 foreach (var mount in document.Mounts)
 {
