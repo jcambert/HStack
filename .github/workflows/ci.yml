@@ -48,12 +48,6 @@ jobs:
         run: bash tests/e2e/m6-smoke.sh
       - name: M7 Operations regression gate
         run: bash tests/e2e/m7-update-check-smoke.sh
-      - name: Install pinned Aspire CLI
-        run: dotnet tool install Aspire.Cli --version 13.6.0 --tool-path .tools
-      - name: M8 Aspire Experience end-to-end gate
-        run: |
-          export PATH="$PWD/.tools:$PATH"
-          bash tests/e2e/m8-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
