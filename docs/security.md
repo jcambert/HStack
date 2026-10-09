@@ -44,3 +44,9 @@ The RTK upstream release can record command strings in its tracking database and
 `hstack token gain` classifies RTK data as Estimated, not Measured. It does not infer provider cost savings.
 
 `hstack security inspect` reports configured optimizer hooks, proxy endpoints and the prompt/content logging posture.
+
+## M8 Aspire security and validation exception
+
+The Aspire workspace must preserve all mandatory invariants above, including a read-only root filesystem, non-root execution, dropped capabilities, no privileged mode, no Docker socket, and loopback-only published ports. Do not weaken those controls to make Aspire's automatic certificate injection succeed. HStack-managed CA trust must remain additive; TLS verification must not be disabled.
+
+The M8 Aspire end-to-end smoke is temporarily not a required CI check. A green build does not demonstrate runtime security or startup readiness. Restore this gate and validate generated AppHost certificate behavior and OpenViking non-root bind-mount permissions before an Aspire-enabled release; see `docs/release-readiness.md`.

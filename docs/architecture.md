@@ -43,3 +43,7 @@ RTK's raw tracking database is redirected to the workspace tmpfs and recall is d
 ## Session and agent boundary
 
 Agent homes and Herdr state remain project-scoped. RTK and Caveman integrations are written into those same isolated homes, so enabling optimization for one project does not modify another project's agent state.
+
+## M8 Aspire deployment (integrated, not release validated)
+
+M8 introduces an Aspire-backed workspace orchestration path alongside the existing Compose path. HermesStack owns the validated deployment document, policy and security invariants; the Aspire AppHost consumes that document and starts the workspace container. Aspire's automatic HTTPS certificate injection conflicts with read-only container roots, so HStack manages its own CA trust and must explicitly disable the Aspire certificate injection in both the checked-in and generated AppHost projects. The generated project remains an open runtime-validation issue. See `docs/release-readiness.md`.
