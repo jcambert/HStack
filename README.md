@@ -43,7 +43,7 @@ Project ports bind to `127.0.0.1` by default. Corporate CA trust remains additiv
 
 Application events are written under `.hstack/logs/hstack.log` with secret redaction. Workspace logs are available through `hstack logs <project>`.
 
-Start with the [documentation index](docs/INDEX.md) for milestone progress, reports, architecture, security and release readiness.
+Start with the [HStack user guide](docs/INDEX.md) for setup, project workflows, agents, diagnostics, backup, updates and known limitations. The [roadmap](docs/agile/ROADMAP.md) tracks milestone progress.
 
 ## Development workflow
 
