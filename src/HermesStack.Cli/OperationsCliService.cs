@@ -152,11 +152,13 @@ internal sealed class OperationsCliService(
         if (args.Length == 0)
         {
             throw new ArgumentException(
-                "Usage: hstack logs <project> [[--tail <n>]] [[--no-follow]] [[--agent <agent>]]");
+                "Usage: hstack logs <project> [[--tail <n>]] [[--no-follow]] [[--agent <agent>]] [[--orchestrator compose|aspire]]");
         }
 
         var project = await projects.GetRequiredAsync(args[0]);
-        var plan = await plans.BuildAsync(project);
+        var plan = await plans.BuildAsync(
+            project,
+            GetOption(args, "--orchestrator"));
         var tailText = GetOption(args, "--tail");
         int? tail = null;
         if (tailText is not null &&
@@ -173,7 +175,7 @@ internal sealed class OperationsCliService(
         if (agent is not null)
         {
             AnsiConsole.MarkupLine(
-                $"[yellow]![/] Separate {Markup.Escape(agent)} logs are not exposed by the Compose backend; showing workspace logs.");
+                $"[yellow]![/] Separate {Markup.Escape(agent)} logs are not exposed by the {Markup.Escape(plan.OrchestratorId)} workspace backend; showing workspace logs.");
         }
 
         return await orchestrator.StreamLogsAsync(

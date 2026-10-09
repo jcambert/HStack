@@ -5,6 +5,7 @@ namespace HermesStack.Infrastructure.Configuration;
 
 public sealed record ToolchainVersions(
     string WorkspaceVersion,
+    string AspireVersion,
     string HerdrVersion,
     string HerdrReleaseTag,
     string HerdrSha256X64,
@@ -55,6 +56,19 @@ public sealed class ToolchainLockService
 
     public ToolchainVersions Parse(string yaml)
     {
+        var document = ParseDocument(yaml);
+        return BuildVersions(document, requireAspire: true);
+    }
+
+    internal (ToolchainVersions Versions, bool HasAspire) ParseForUpdateCheck(string yaml)
+    {
+        var document = ParseDocument(yaml);
+        var hasAspire = !string.IsNullOrWhiteSpace(document.Tools?.Aspire?.Version);
+        return (BuildVersions(document, requireAspire: false), hasAspire);
+    }
+
+    private ToolchainLockDocument ParseDocument(string yaml)
+    {
         if (string.IsNullOrWhiteSpace(yaml))
         {
             throw new InvalidDataException("toolchain.lock.yaml is empty.");
@@ -68,8 +82,21 @@ public sealed class ToolchainLockService
             throw new InvalidDataException($"Unsupported toolchain lock schemaVersion {document.SchemaVersion}.");
         }
 
+        return document;
+    }
+
+    private static ToolchainVersions BuildVersions(
+        ToolchainLockDocument document,
+        bool requireAspire)
+    {
+        var aspireVersion = document.Tools?.Aspire?.Version;
         return new ToolchainVersions(
             Require(document.Workspace?.Version, "workspace.version"),
+            requireAspire
+                ? Require(aspireVersion, "tools.aspire.version")
+                : string.IsNullOrWhiteSpace(aspireVersion)
+                    ? "0.0.0"
+                    : Require(aspireVersion, "tools.aspire.version"),
             Require(document.Tools?.Herdr?.Version, "tools.herdr.version"),
             Require(document.Tools?.Herdr?.ReleaseTag, "tools.herdr.releaseTag"),
             RequireDigest(document.Tools?.Herdr?.Sha256X64, "tools.herdr.sha256X64"),
@@ -129,6 +156,7 @@ public sealed class ToolchainLockService
 
     public sealed class ToolsEntry
     {
+        public ToolEntry? Aspire { get; set; }
         public ToolEntry? Hermes { get; set; }
         public ToolEntry? Herdr { get; set; }
         public ToolEntry? ClaudeCode { get; set; }

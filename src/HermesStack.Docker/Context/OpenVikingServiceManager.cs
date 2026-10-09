@@ -30,7 +30,7 @@ public sealed class OpenVikingServiceManager(
     ISecretStore secretStore,
     IProcessRunner processRunner,
     string image,
-    string version)
+    string version) : IWorkspaceContextManager
 {
     private const string AccountId = "hstack";
     private const string AdminUserId = "hstack-admin";
@@ -69,6 +69,13 @@ public sealed class OpenVikingServiceManager(
         {
             return new ContextProviderAvailability(false, version, exception.Message);
         }
+    }
+
+    public async Task EnsureWorkspaceReadyAsync(
+        string projectId,
+        CancellationToken cancellationToken = default)
+    {
+        _ = await EnsureProjectAsync(projectId, cancellationToken);
     }
 
     public async Task<OpenVikingConnection> EnsureProjectAsync(

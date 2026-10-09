@@ -9,6 +9,7 @@ using HermesStack.Application.Security;
 using HermesStack.Application.Sessions;
 using HermesStack.Application.Tokens;
 using HermesStack.Application.Updates;
+using HermesStack.Aspire;
 using HermesStack.Docker.Compose;
 using HermesStack.Docker.Context;
 using HermesStack.Docker.Security;
@@ -78,11 +79,37 @@ internal static class HStackCli
                 baseCompose,
                 $"hstack/workspace-full:{toolchain.WorkspaceVersion}",
                 configStore,
+                configStore,
                 configStore);
-            var orchestrator = new DockerComposeWorkspaceOrchestrator(
+            var composeOrchestrator = new DockerComposeWorkspaceOrchestrator(
                 processRunner,
                 new ComposeOverrideWriter(),
                 openVikingManager);
+            var appHostSource = Path.Combine(
+                AppContext.BaseDirectory,
+                "assets",
+                "aspire",
+                "apphost",
+                "AppHost.cs");
+            var aspireVersion = toolchain.AspireVersion;
+            var aspireCapabilities =
+                new AspireOrchestratorCapabilityEvaluator();
+            var aspireOrchestrator = new AspireWorkspaceOrchestrator(
+                processRunner,
+                new AspireDeploymentPlanWriter(
+                    dataRoot,
+                    appHostSource,
+                    aspireVersion),
+                aspireCapabilities,
+                aspireVersion,
+                openVikingManager);
+            var orchestratorRegistry = new WorkspaceOrchestratorRegistry(
+            [
+                composeOrchestrator,
+                aspireOrchestrator
+            ]);
+            var orchestrator = new RoutedWorkspaceOrchestrator(
+                orchestratorRegistry);
             var integrations = CreateIntegrationRegistry(toolchain);
             var agents = CreateAgentHarnessRegistry(orchestrator);
             var contextRegistry = new ContextProviderRegistry(
@@ -167,7 +194,8 @@ internal static class HStackCli
                 secretPolicies,
                 tokenService,
                 contextService,
-                redactor);
+                redactor,
+                orchestratorRegistry);
             var archives = new BackupArchiveService(
                 dataRoot,
                 embeddedToolchainPath);
@@ -184,10 +212,26 @@ internal static class HStackCli
             var configCli = new HermesStack.Cli.ConfigCliService(
                 configStore,
                 projectService);
+            var orchestratorCli = new HermesStack.Cli.OrchestratorCliService(
+                projectService,
+                planBuilder,
+                orchestratorRegistry,
+                orchestrator,
+                configStore);
+            var aspireCli = new HermesStack.Cli.AspireCliService(
+                projectService,
+                planBuilder,
+                aspireOrchestrator);
 
             if (args.Length == 0)
             {
-                await ShowDashboardAsync(projectService, planBuilder, orchestrator, integrations, agents);
+                await ShowDashboardAsync(
+                    projectService,
+                    planBuilder,
+                    orchestratorRegistry,
+                    orchestrator,
+                    integrations,
+                    agents);
                 if (Console.IsInputRedirected || Console.IsOutputRedirected)
                 {
                     return 0;
@@ -239,7 +283,7 @@ internal static class HStackCli
                             certificateService,
                             projectService,
                             planBuilder,
-                            orchestrator,
+                            composeOrchestrator,
                             mountValidator,
                             baseCompose,
                             secretStore);
@@ -297,14 +341,22 @@ internal static class HStackCli
 
             return args[0] switch
             {
-                "init" => await InitAsync(args[1..], initializer, processRunner, toolchain, effectiveToolchainPath, certificateService),
+                "init" => await InitAsync(
+                    args[1..],
+                    initializer,
+                    processRunner,
+                    toolchain,
+                    effectiveToolchainPath,
+                    certificateService,
+                    configStore,
+                    orchestratorRegistry),
                 "project" => await ProjectAsync(args[1..], projectService),
                 "up" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.UpAsync(p, ct)),
                 "down" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.DownAsync(p, ct)),
                 "restart" => await WorkspaceActionAsync(args[1..], projectService, planBuilder, orchestrator, static (o, p, ct) => o.RestartAsync(p, ct)),
                 "shell" => await ShellAsync(args[1..], projectService, planBuilder, orchestrator),
-                "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
-                "ps" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations),
+                "status" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations, orchestratorRegistry),
+                "ps" => await StatusAsync(args[1..], projectService, planBuilder, orchestrator, agents, integrations, orchestratorRegistry),
                 "logs" => await operationsCli.LogsAsync(args[1..]),
                 "agent" => await agentCli.AgentAsync(args[1..]),
                 "auth" => await agentCli.AuthAsync(args[1..]),
@@ -323,8 +375,13 @@ internal static class HStackCli
                 "token" => await tokenCli.RunAsync(args[1..]),
                 "memory" => await memoryCli.RunAsync(args[1..]),
                 "context" => await contextCli.RunAsync(args[1..]),
-                "doctor" => await doctorCli.RunAsync(args[1..]),
+                "doctor" => args[1..].Contains("--aspire", StringComparer.Ordinal)
+                    ? await aspireCli.DoctorAsync()
+                    : await doctorCli.RunAsync(args[1..]),
                 "config" => await configCli.RunAsync(args[1..]),
+                "orchestrator" => await orchestratorCli.RunAsync(args[1..]),
+                "plan" => await orchestratorCli.PlanAsync(args[1..]),
+                "aspire" => await aspireCli.RunAsync(args[1..]),
                 "update" => await UpdateAsync(
                     args[1..],
                     toolchain,
@@ -335,7 +392,7 @@ internal static class HStackCli
                     certificateService,
                     projectService,
                     planBuilder,
-                    orchestrator,
+                    composeOrchestrator,
                     mountValidator,
                     baseCompose,
                     secretStore),
@@ -371,24 +428,41 @@ internal static class HStackCli
         ProcessRunner processRunner,
         ToolchainVersions toolchain,
         string toolchainPath,
-        CertificateBundleService certificateService)
+        CertificateBundleService certificateService,
+        HStackConfigStore configStore,
+        IWorkspaceOrchestratorRegistry orchestrators)
     {
-        var orchestrator = GetOption(args, "--orchestrator") ?? "compose";
-        if (!string.Equals(orchestrator, "compose", StringComparison.OrdinalIgnoreCase))
+        var orchestrator = (GetOption(args, "--orchestrator") ?? "compose")
+            .Trim()
+            .ToLowerInvariant();
+        var selectedOrchestrator = orchestrators.GetRequired(orchestrator);
+        var availability = await selectedOrchestrator.DetectAsync();
+        if (!availability.IsAvailable)
         {
-            throw new NotSupportedException(
-                "The current milestone implements Docker Compose only; Aspire remains an explicit later backend.");
+            throw new InvalidOperationException(
+                $"HS2110: Orchestrator '{orchestrator}' is unavailable: {availability.Reason}");
         }
 
         await initializer.InitializeAsync(orchestrator);
+        var orchestration = await configStore.GetOrchestrationAsync();
+        await configStore.SaveOrchestrationAsync(
+            orchestration with
+            {
+                DefaultOrchestrator = orchestrator,
+                ComposeEnabled = orchestration.ComposeEnabled || orchestrator == "compose",
+                AspireEnabled = orchestration.AspireEnabled || orchestrator == "aspire"
+            });
         AnsiConsole.MarkupLine("[green]✓[/] HermesStack data root initialized");
 
         ProcessResult docker;
-        ProcessResult compose;
+        ProcessResult? compose = null;
         try
         {
             docker = await processRunner.RunAsync(new("docker", ["version", "--format", "{{.Client.Version}}"]));
-            compose = await processRunner.RunAsync(new("docker", ["compose", "version", "--short"]));
+            if (orchestrator == "compose")
+            {
+                compose = await processRunner.RunAsync(new("docker", ["compose", "version", "--short"]));
+            }
         }
         catch (System.ComponentModel.Win32Exception)
         {
@@ -397,15 +471,22 @@ internal static class HStackCli
             return 0;
         }
 
-        if (!docker.IsSuccess || !compose.IsSuccess)
+        if (!docker.IsSuccess || (compose is not null && !compose.IsSuccess))
         {
             AnsiConsole.MarkupLine(
-                "[yellow]![/] Docker/Compose is not available. Configuration is initialized; image build was skipped.");
+                "[yellow]![/] Required container runtime/orchestrator tooling is not available. Configuration is initialized; image build was skipped.");
             return 0;
         }
 
         AnsiConsole.MarkupLine($"[green]✓[/] Docker {Markup.Escape(docker.StandardOutput.Trim())}");
-        AnsiConsole.MarkupLine($"[green]✓[/] Compose {Markup.Escape(compose.StandardOutput.Trim())}");
+        if (compose is not null)
+        {
+            AnsiConsole.MarkupLine($"[green]✓[/] Compose {Markup.Escape(compose.StandardOutput.Trim())}");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[green]✓[/] Aspire {Markup.Escape(availability.Version ?? "ready")}");
+        }
 
         var workspaceDir = Path.Combine(AppContext.BaseDirectory, "assets", "docker", "workspace");
         var toolchainHash = Convert.ToHexString(
@@ -460,6 +541,19 @@ internal static class HStackCli
             "Dockerfile.base",
             baseTag,
             commonBuildArgs);
+
+        if (args.Contains("--ci-base-image-only", StringComparer.Ordinal))
+        {
+            if (!string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("--ci-base-image-only is restricted to CI.");
+            }
+
+            await processRunner.RunAsync(new(
+                "docker", ["tag", baseTag, fullTag], ThrowOnError: true));
+            AnsiConsole.MarkupLine("[yellow]![/] CI smoke mode: full agent image build skipped; base image substituted.");
+            return 0;
+        }
 
         await BuildImageAsync(
             processRunner,
@@ -734,8 +828,8 @@ internal static class HStackCli
         string[] args,
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
-        DockerComposeWorkspaceOrchestrator orchestrator,
-        Func<DockerComposeWorkspaceOrchestrator, WorkspaceDeploymentPlan, CancellationToken, Task> action)
+        IWorkspaceOrchestrator orchestrator,
+        Func<IWorkspaceOrchestrator, WorkspaceDeploymentPlan, CancellationToken, Task> action)
     {
         if (args.Length == 0)
         {
@@ -753,7 +847,7 @@ internal static class HStackCli
         string[] args,
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
-        DockerComposeWorkspaceOrchestrator orchestrator)
+        IWorkspaceOrchestrator orchestrator)
     {
         if (args.Length == 0)
         {
@@ -776,9 +870,10 @@ internal static class HStackCli
         string[] args,
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
-        DockerComposeWorkspaceOrchestrator orchestrator,
+        IWorkspaceOrchestrator orchestrator,
         IAgentHarnessRegistry agents,
-        IntegrationRegistry integrations)
+        IntegrationRegistry integrations,
+        IWorkspaceOrchestratorRegistry? orchestratorRegistry = null)
     {
         var json = args.Contains("--json", StringComparer.Ordinal);
         var quiet = args.Contains("--quiet", StringComparer.Ordinal);
@@ -813,6 +908,7 @@ internal static class HStackCli
                 await ShowDashboardAsync(
                     projects,
                     plans,
+                    orchestratorRegistry ?? new WorkspaceOrchestratorRegistry([orchestrator]),
                     orchestrator,
                     integrations,
                     agents);
@@ -838,7 +934,7 @@ internal static class HStackCli
                 agentState = project.StateScope,
                 agentHarnesses = agents.All.Count,
                 security = "Policy A",
-                orchestrator = orchestrator.DisplayName
+                orchestrator = plan.OrchestratorId
             }));
         }
         else if (!quiet)
@@ -851,7 +947,11 @@ internal static class HStackCli
             table.AddRow("Mount", $"{project.HostPath} -> /workspace");
             table.AddRow("Agent state", $"{project.StateScope} ({agents.All.Count} harnesses)");
             table.AddRow("Security", "Policy A");
-            table.AddRow("Orchestrator", orchestrator.DisplayName);
+            table.AddRow("Orchestrator", plan.OrchestratorId);
+            if (!string.IsNullOrWhiteSpace(status.Details))
+            {
+                table.AddRow("Details", Markup.Escape(status.Details));
+            }
             AnsiConsole.Write(table);
         }
 
@@ -932,16 +1032,24 @@ internal static class HStackCli
     private static async Task ShowDashboardAsync(
         ProjectService projects,
         WorkspaceDeploymentPlanBuilder plans,
-        DockerComposeWorkspaceOrchestrator orchestrator,
+        IWorkspaceOrchestratorRegistry orchestratorRegistry,
+        IWorkspaceOrchestrator orchestrator,
         IntegrationRegistry registry,
         IAgentHarnessRegistry agents)
     {
         AnsiConsole.Write(
             new Rule("[bold]HermesStack[/] — Secure Local Agent Workspaces"));
-        var dockerAvailability = await orchestrator.DetectAsync();
-        var dockerReady = dockerAvailability.IsAvailable;
-        AnsiConsole.MarkupLine(
-            $"Docker Compose  {(dockerReady ? "[green]Ready[/]" : "[yellow]Unavailable[/]")}");
+
+        foreach (var backend in orchestratorRegistry.All)
+        {
+            var availability = await backend.DetectAsync();
+            AnsiConsole.MarkupLine(
+                $"{Markup.Escape(backend.DisplayName),-15} " +
+                (availability.IsAvailable
+                    ? $"[green]Ready[/] {Markup.Escape(availability.Version ?? string.Empty)}"
+                    : $"[yellow]Unavailable[/] {Markup.Escape(availability.Reason ?? string.Empty)}"));
+        }
+
         AnsiConsole.MarkupLine(
             $"Agents          {agents.All.Count} registered harnesses");
         AnsiConsole.MarkupLine(
@@ -956,15 +1064,30 @@ internal static class HStackCli
 
         var table = new Table()
             .AddColumn("Project")
+            .AddColumn("Orchestrator")
             .AddColumn("State")
+            .AddColumn("Dashboard")
             .AddColumn("Path");
         foreach (var project in projectList)
         {
             var plan = await plans.BuildAsync(project);
-            var status = dockerReady
+            var backend = orchestratorRegistry.GetRequired(plan.OrchestratorId);
+            var availability = await backend.DetectAsync();
+            var status = availability.IsAvailable
                 ? await orchestrator.GetStatusAsync(plan)
-                : new WorkspaceStatus(WorkspaceState.Unknown);
-            table.AddRow(project.Name, status.State.ToString(), project.HostPath);
+                : new WorkspaceStatus(
+                    WorkspaceState.Unknown,
+                    availability.Reason);
+            var dashboard = plan.OrchestratorId == "aspire" &&
+                status.Details?.StartsWith("Aspire Dashboard: ", StringComparison.Ordinal) == true
+                    ? status.Details["Aspire Dashboard: ".Length..]
+                    : "-";
+            table.AddRow(
+                Markup.Escape(project.Name),
+                Markup.Escape(plan.OrchestratorId),
+                status.State.ToString(),
+                Markup.Escape(dashboard),
+                Markup.Escape(project.HostPath));
         }
 
         AnsiConsole.Write(table);
@@ -1118,11 +1241,22 @@ internal static class HStackCli
             IntegrationKind.Orchestrator,
             new HashSet<IntegrationCapability>
             {
+                IntegrationCapability.BindMounts,
+                IntegrationCapability.NoNewPrivileges,
+                IntegrationCapability.DropCapabilities,
+                IntegrationCapability.LocalhostPortBinding,
+                IntegrationCapability.InteractiveTty,
+                IntegrationCapability.PersistentHome,
                 IntegrationCapability.StructuredLogs,
                 IntegrationCapability.Traces,
                 IntegrationCapability.Metrics
             },
-            false)
+            false,
+            "integrate",
+            toolchain.AspireVersion,
+            "Ready",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            "Aspire 13.6 stable CLI/AppHost integration")
     ]);
 
     private static async Task<int> UpdateAsync(
@@ -1579,17 +1713,17 @@ internal static class HStackCli
     {
         Console.Out.WriteLine("""
 hstack
-  hstack init [--orchestrator compose]
+  hstack init [--orchestrator compose|aspire]
   hstack project list [--json]
   hstack project show <id> [--json]
   hstack project add <id> <hostPath> [--name <name>] [--quiet]
   hstack project edit <id> [--path <hostPath>] [--name <name>]
   hstack project remove <id> --yes
-  hstack up <project>
-  hstack down <project>
-  hstack restart <project>
-  hstack shell <project>
-  hstack status [project] [--json] [--quiet]
+  hstack up <project> [--orchestrator compose|aspire]
+  hstack down <project> [--orchestrator compose|aspire]
+  hstack restart <project> [--orchestrator compose|aspire]
+  hstack shell <project> [--orchestrator compose|aspire]
+  hstack status [project] [--json] [--quiet] [--orchestrator compose|aspire]
   hstack ps [--json]
   hstack logs <project> [--tail <n>] [--no-follow] [--agent <agent>]
 
@@ -1643,8 +1777,16 @@ hstack
   hstack memory integrate <project> --agent claude|codex|hermes|opencode|all
   hstack context explain <project> [--query <query>] [--agent <agent>]
 
-  hstack doctor [project] [--network|--certificates|--security|--tokens|--memory]
+  hstack doctor [project] [--network|--certificates|--security|--tokens|--memory] [--orchestrator compose|aspire]
+  hstack doctor --aspire
   hstack config validate [--json]
+  hstack orchestrator list|status
+  hstack orchestrator set compose|aspire [--project <project>]
+  hstack plan <project> [--orchestrator compose|aspire]
+  hstack aspire status [project]
+  hstack aspire doctor
+  hstack aspire dashboard <project>
+  hstack aspire inspect <project>
   hstack update check [--json]
   hstack update plan [--json]
   hstack update apply --yes

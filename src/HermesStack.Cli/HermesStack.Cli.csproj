@@ -9,11 +9,13 @@
     <ProjectReference Include="../HermesStack.Application/HermesStack.Application.csproj" />
     <ProjectReference Include="../HermesStack.Infrastructure/HermesStack.Infrastructure.csproj" />
     <ProjectReference Include="../HermesStack.Docker/HermesStack.Docker.csproj" />
+    <ProjectReference Include="../HermesStack.Aspire/HermesStack.Aspire.csproj" />
     <PackageReference Include="Spectre.Console" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="../../docker/compose/compose.yaml" Link="assets/docker/compose/compose.yaml" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../docker/workspace/**" Link="assets/docker/workspace/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../toolchain.lock.yaml" Link="assets/toolchain.lock.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../HermesStack.AppHost/AppHost.cs" Link="assets/aspire/apphost/AppHost.cs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

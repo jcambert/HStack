@@ -21,14 +21,16 @@ internal sealed class SecurityCliService(
 {
     public async Task<int> RunAsync(string[] args)
     {
-        if (args.Length != 2 || args[0] != "inspect")
+        if (args.Length < 2 || args[0] != "inspect")
         {
             throw new ArgumentException(
-                "Usage: hstack security inspect <project>");
+                "Usage: hstack security inspect <project> [--orchestrator compose|aspire]");
         }
 
         var project = await projects.GetRequiredAsync(args[1]);
-        var plan = await plans.BuildAsync(project);
+        var plan = await plans.BuildAsync(
+            project,
+            GetOption(args, "--orchestrator"));
         var snapshot = await inspector.InspectAsync(plan);
         var policies = await secretPolicies.ListAsync(project.Id);
         snapshot = snapshot with
@@ -137,4 +139,12 @@ internal sealed class SecurityCliService(
 
     private static string Empty(string value) =>
         string.IsNullOrWhiteSpace(value) ? "default" : value;
+
+    private static string? GetOption(string[] args, string name)
+    {
+        var index = Array.IndexOf(args, name);
+        return index >= 0 && index + 1 < args.Length
+            ? args[index + 1]
+            : null;
+    }
 }

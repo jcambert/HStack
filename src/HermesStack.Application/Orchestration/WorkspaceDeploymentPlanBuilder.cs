@@ -14,7 +14,8 @@ public sealed class WorkspaceDeploymentPlanBuilder(
     string baseComposeFile,
     string workspaceImage = "hstack/workspace-full:0.6.0",
     IProxyConfigurationStore? proxyConfigurationStore = null,
-    IContextConfigurationStore? contextConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
+    IContextConfigurationStore? contextConfigurationStore = null,
+    IOrchestrationConfigurationStore? orchestrationConfigurationStore = null) : IWorkspaceDeploymentPlanBuilder
 {
     public async Task<WorkspaceDeploymentPlan> BuildAsync(
         ProjectDefinition project,
@@ -164,11 +165,26 @@ public sealed class WorkspaceDeploymentPlanBuilder(
             }
         }
 
-        var orchestrator = orchestratorOverride ?? project.Orchestrator ?? "compose";
-        if (!string.Equals(orchestrator, "compose", StringComparison.OrdinalIgnoreCase))
+        var orchestration = orchestrationConfigurationStore is null
+            ? new OrchestrationConfiguration()
+            : await orchestrationConfigurationStore.GetOrchestrationAsync(cancellationToken);
+        var orchestrator = (
+            orchestratorOverride ??
+            project.Orchestrator ??
+            orchestration.DefaultOrchestrator)
+            .Trim()
+            .ToLowerInvariant();
+
+        if (orchestrator is not ("compose" or "aspire"))
         {
             throw new NotSupportedException(
-                $"Orchestrator '{orchestrator}' is not implemented in the current milestone.");
+                $"Unknown orchestrator '{orchestrator}'. Supported values: compose, aspire.");
+        }
+
+        if (!orchestration.IsEnabled(orchestrator))
+        {
+            throw new InvalidOperationException(
+                $"HS2109: Orchestrator '{orchestrator}' is disabled in HermesStack configuration.");
         }
 
         return new WorkspaceDeploymentPlan(
