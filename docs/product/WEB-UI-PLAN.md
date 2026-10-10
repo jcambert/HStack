@@ -4,7 +4,7 @@
 
 ## Ordre des jalons
 
-M9 a été implémenté dans la PR #19 et validé par la CI PR #146 ; les options Dagger/DevPod ont reçu une décision No-Go d'adoption (études documentaires). La prochaine étape **après fusion et CI main verte** est M10. Le présent document **préserve le plan M10 sans autoriser son implémentation anticipée**. Le guide utilisateur existant continue à être amélioré au fil des corrections. Voir [Roadmap](../agile/ROADMAP.md) et [EPIC-023](../agile/epics/EPIC-023.md).
+M9 est **terminé** par PR #19, CI candidate #147 et [CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826) vertes. Dagger/DevPod restent No-Go d'adoption (études documentaires sans PoC externe). La prochaine étape est **M10**, encore non implémenté. Le présent document **préserve le plan M10 sans autoriser son implémentation anticipée**. Le guide utilisateur existant continue à être amélioré au fil des corrections. Voir [Roadmap](../agile/ROADMAP.md) et [EPIC-023](../agile/epics/EPIC-023.md).
 
 ## Parcours à simplifier
 

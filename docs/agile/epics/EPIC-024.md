@@ -1,6 +1,6 @@
 # EPIC-024 — User Onboarding, Documentation & Secure Local Web UI
 
-**Milestone:** M10 — planned **AFTER M9**; **Priority:** next milestone **only after post-merge M9 CI is green**; **Status:** Web UI not implemented. The initial written user guide is already available.
+**Milestone:** M10 — planned **AFTER M9**; **Priority:** next milestone (M9 gate satisfied by main CI #148); **Status:** Web UI not implemented. The initial written user guide is already available.
 
 ## Why
 
@@ -60,7 +60,7 @@ E2E browser smoke, accessibility, Windows/Linux build and startup, REST contract
 
 ## Prerequisite milestone gate
 
-No implementation of M10 host/WASM UI, release or Done claim until M9 EPIC-023 has a merged implementation and green main CI with native-provider tests, security parity evidence, upstream spike Go/No-Go decisions and green CI. Maintenance of the existing Markdown user guide may continue before M9 closure.
+M9 EPIC-023 is merged and [main CI #148](https://github.com/jcambert/HStack/actions/runs/38076623826) is green; the prerequisite is now **satisfied**. M10 is next, but the host/WASM interface has **not** been built or released. The existing Markdown user guide remains available.
 
 ## Not in scope (initial UI)
 

@@ -51,9 +51,9 @@
 - Main CI #139 (commit `cf6397a6543c7e74bb231ca085136425399a9d6e`) passed Linux M3–M8, Windows, and uploaded all three verified distribution artifacts.
 - Existing installations with root-owned historical OpenViking state may require a controlled ownership migration. Linux ARM64 is package-validated in CI, not native ARM64 runtime smoke-tested.
 
-## M9 — Optional Sandbox Providers (EPIC-023): implementation verified in PR CI #146
+## Done — M9 Optional Sandbox Providers (EPIC-023)
 
-L'ordre M8 → M9 → M10 est **obligatoire**. L'implémentation native M9 et la recherche des options ont été présentées en PR #19 ; CI PR #146 verte, validation post-merge sur main obligatoire avant clôture formelle.
+L'ordre M8 → M9 → M10 est **obligatoire**. L'implémentation native M9 et la recherche des options ont été présentées en PR #19 ; CI PR #146 verte, clôture confirmée par [main CI #148](https://github.com/jcambert/HStack/actions/runs/38076623826), 5/5 verte sur `a3b88c6b9aa02e3fa538fa27cc31564711e84d6e`.
 
 - **PBI-2301 — Done (candidate)** — Execution provider abstraction et négociation de capacités, séparées de Compose/Aspire.
 - **PBI-2302 — Done (candidate)** — Native container provider reprenant Docker sans perdre les fonctionnalités M1–M8.
@@ -61,9 +61,9 @@ L'ordre M8 → M9 → M10 est **obligatoire**. L'implémentation native M9 et la
 - **PBI-2303 — Research decision: No-Go adoption** — Dagger Container Use **spike/research seulement**, après validation du provider natif.
 - **PBI-2304 — Research decision: No-Go adoption** — DevPod **spike/research seulement**, après validation du provider natif.
 
-**Definition of Done M9 (code validated; main gate pending):** PBI-2301, 2302 et 2305 terminés, comparaisons PBI-2303 et 2304 documentées (Go/No-Go), revue de sécurité, tests réels Compose/Aspire/agent/OpenViking, CI Windows/Linux verte, roadmap/rapport de clôture mis à jour. Pas de nouvelle intégration externe obligatoire. Détails : [EPIC-023](epics/EPIC-023.md) et [PBI-2301](pbi/PBI-2301.md) à [PBI-2305](pbi/PBI-2305.md).
+**Definition of Done M9 — satisfied (CI #147 candidate et CI #148 main) :** PBI-2301, 2302 et 2305 terminés, comparaisons PBI-2303 et 2304 documentées (Go/No-Go), revue de sécurité, tests réels Compose/Aspire/agent/OpenViking, CI Windows/Linux verte, roadmap/rapport de clôture mis à jour. Pas de nouvelle intégration externe obligatoire. Détails : [EPIC-023](epics/EPIC-023.md) et [PBI-2301](pbi/PBI-2301.md) à [PBI-2305](pbi/PBI-2305.md).
 
-## NEXT, after green main CI — M10 Product UX, documentation & Web UI (EPIC-024), not started
+## NEXT — M10 Product UX, documentation & Web UI (EPIC-024), not started
 
 - **PBI-2401** — Guide utilisateur et tutoriel : **premier brouillon publié**, validation utilisateur/CLI et aide UI encore à faire.
 - PBI-2402 — Blazor WebAssembly .NET 10 + MudBlazor, MudExtensions facultatif, hôte ASP.NET Core local.
@@ -72,4 +72,4 @@ L'ordre M8 → M9 → M10 est **obligatoire**. L'implémentation native M9 et la
 - PBI-2405 — Parcours guidés : agents, sessions, mémoire, ports, sauvegardes.
 - PBI-2406 — E2E navigateur, accessibilité, packaging Windows/Linux, compatibilité CLI.
 
-**Statut : UI non développée.** Le candidat M9 a une CI PR verte ; ne commencer M10 qu'après fusion et CI main post-fusion verte. Détails : [EPIC-024](epics/EPIC-024.md) et [plan UI](../product/WEB-UI-PLAN.md).
+**Statut : UI non développée.** M9 est fusionné et sa CI main #148 est verte. M10 peut démarrer, mais son interface Blazor n'est pas encore implémentée. Détails : [EPIC-024](epics/EPIC-024.md) et [plan UI](../product/WEB-UI-PLAN.md).

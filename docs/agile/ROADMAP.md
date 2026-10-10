@@ -8,12 +8,12 @@
 - **M6 Shared Context — Done**: EPIC-015 / OpenViking first; project-scoped identities, fail-closed ACL sharing, context policy/budgets, agent integrations, diagnostics and memory portability.
 - **M7 Operations — Done**: EPIC-016..020; transactional managed updates, recovery/portability, operational observability, CLI operations and validated multi-platform distribution.
 - **M8 Aspire Experience — Done (CI/release workflow)**: EPIC-021 integrated by PR #12 and release gates closed by PR #15 (2026-10-10). Required real Aspire/OpenViking/security smoke plus Linux/Windows tests and win-x64/linux-x64/linux-arm64 SHA-256-verified artifacts passed on main CI #139 at `cf6397a6543c7e74bb231ca085136425399a9d6e`. See `docs/agile/M8-REPORT.md` and `docs/release-readiness.md`.
-- **M9 Optional Sandbox Providers — Implementation validated / closure gate**: EPIC-023. Stabiliser l'abstraction des execution providers et le backend Docker natif, vérifier la parité de sécurité puis évaluer Dagger Container Use et DevPod par spikes. Une étude n'est pas une intégration obligatoire. Voir [EPIC-023](epics/EPIC-023.md).
-- **M10 Product UX & Local Web UI — Planned / NEXT once M9 main CI is green**: EPIC-024. Interface locale Blazor WebAssembly (.NET 10) + MudBlazor, MudExtensions optionnel, API ASP.NET Core sécurisée et aide utilisateur. La **première version écrite** du guide utilisateur est déjà publiée; aucun développement Web UI n'a commencé. Voir [EPIC-024](epics/EPIC-024.md), [plan UI](../product/WEB-UI-PLAN.md) et [guide](../INDEX.md).
+- **M9 Optional Sandbox Providers — Done (2026-10-10; main CI #148)**: EPIC-023. Stabiliser l'abstraction des execution providers et le backend Docker natif, vérifier la parité de sécurité puis évaluer Dagger Container Use et DevPod par spikes. Une étude n'est pas une intégration obligatoire. Voir [EPIC-023](epics/EPIC-023.md).
+- **M10 Product UX & Local Web UI — Planned / NEXT**: EPIC-024. Interface locale Blazor WebAssembly (.NET 10) + MudBlazor, MudExtensions optionnel, API ASP.NET Core sécurisée et aide utilisateur. La **première version écrite** du guide utilisateur est déjà publiée; aucun développement Web UI n'a commencé. Voir [EPIC-024](epics/EPIC-024.md), [plan UI](../product/WEB-UI-PLAN.md) et [guide](../INDEX.md).
 
 ## Ordre impératif après M8 (décision 2026-10-10)
 
-**M8 terminé → M9 implémenté et candidat validé → M10 à développer après clôture de M9 sur main.**
+**M8 terminé → M9 terminé (CI #148) → M10 à développer.**
 
 On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurité, documentation utilisateur et incidents de production peuvent toujours être prises en charge sans démarrer une fonctionnalité M10 avant la clôture de M9. L'UI est reportée après M9, pas annulée.
 
@@ -25,7 +25,7 @@ On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurit�
 4. **PBI-2303** — *Spike* Dagger Container Use **après stabilisation du backend natif** : compatibilité, sécurité, intégrations, coûts et décision Go/No-Go.
 5. **PBI-2304** — *Spike* DevPod **après stabilisation du backend natif** : DevContainer, isolation, montages, persistance et décision Go/No-Go.
 
-**Gate M9 → M10** : abstraction et provider natif livrés/testés, preuves de non-régression des parcours Compose/Aspire/agents/OpenViking, matrice de sécurité et capacités, spikes documentés (ou décisions formelles motivées), CI Windows/Linux verte et rapport de clôture M9. L'absence de nouveau provider externe est acceptable si les spikes concluent « No-Go ». M9 a son **candidat d'implémentation** validé en CI PR #146 (5/5) sur `fce766dc0015642eab0f31b24322c5f6b21c4b5d` : [exécution](https://github.com/jcambert/HStack/actions/runs/38075662535). La clôture formelle exige également la CI `main` verte après fusion de la PR #19. Dagger et DevPod sont des **No-Go d'adoption** avec études documentaires ; aucun PoC externe exécuté ni provider externe activé.
+**Gate M9 → M10** : abstraction et provider natif livrés/testés, preuves de non-régression des parcours Compose/Aspire/agents/OpenViking, matrice de sécurité et capacités, spikes documentés (ou décisions formelles motivées), CI Windows/Linux verte et rapport de clôture M9. L'absence de nouveau provider externe est acceptable si les spikes concluent « No-Go ». M9 a son **candidat d'implémentation** validé en CI PR #146 (5/5) sur `fce766dc0015642eab0f31b24322c5f6b21c4b5d` : [exécution](https://github.com/jcambert/HStack/actions/runs/38075662535). La clôture formelle est maintenant acquise : [CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826) 5/5 verte sur `a3b88c6b9aa02e3fa538fa27cc31564711e84d6e`. Dagger et DevPod sont des **No-Go d'adoption** avec études documentaires ; aucun PoC externe exécuté ni provider externe activé.
 
 ### M10 — Documentation et interface utilisateur locale (EPIC-024)
 
@@ -35,6 +35,6 @@ On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurit�
 - **M10.4 — Développement assisté** : onboarding, agents et sessions, mémoire, ports, sauvegardes.
 - **M10.5 — Tests/distribution** : E2E navigateur, accessibilité, builds et packaging, CI/régressions.
 
-**Gate M10** : ne pas implémenter le Web Host/WASM avant le merge de M9 et la validation de la CI `main` post-fusion. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.
+**Gate M10 — SATISFAIT :** M9 fusionné et CI main #148 verte. L'UI M10 reste à développer. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.
 
 **Validation détaillée :** [Rapport M9](M9-REPORT.md) et [EPIC-023](epics/EPIC-023.md). Ne pas confondre recherche sans PoC externe et certification des sandbox tiers.

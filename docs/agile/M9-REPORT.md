@@ -1,6 +1,6 @@
 # M9 — Optional Sandbox Providers validation report
 
-**Milestone:** M9 / EPIC-023. **Candidate state:** PR #19 code commit `fce766dc0015642eab0f31b24322c5f6b21c4b5d` passed all five required [CI #146](https://github.com/jcambert/HStack/actions/runs/38075662535) jobs on 2026-10-10. Formal closure and M10 authorization still depend on post-merge main CI.
+**Milestone:** M9 / EPIC-023 — **DONE 2026-10-10**. Candidate CI [#146](https://github.com/jcambert/HStack/actions/runs/38075662535), final PR CI [#147](https://github.com/jcambert/HStack/actions/runs/38076189375) and post-merge main CI [#148](https://github.com/jcambert/HStack/actions/runs/38076623826) all green (5/5). Main commit: `a3b88c6b9aa02e3fa538fa27cc31564711e84d6e`. M10 is unblocked but not implemented.
 
 ## Implementation
 
@@ -38,4 +38,4 @@
 
 - The existing Linux x64 Docker/Aspire runner is the live OCI security baseline; Windows remains build/test, ARM64 remains cross-publish/package SHA validation. Native Windows/Aspire or ARM64 runtime equivalence cannot be asserted.
 - No external Container Use or DevPod PoC was executed. Their adoption remains blocked; a dedicated future evaluation may be funded if product needs justify it.
-- The PR candidate gate is **green**; mark M9 **Done** and allow M10 only after the same source is merged and post-merge main gates are verified green. The final merge SHA and main CI run are recorded in the user-visible M9 completion report.
+- **Closure confirmed:** PR #19 merged; main CI #148 green for exactly `a3b88c6b9aa02e3fa538fa27cc31564711e84d6e`. M9 **Done**, M10 may start. No unverified external provider enabled.
