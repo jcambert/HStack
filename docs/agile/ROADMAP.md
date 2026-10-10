@@ -8,21 +8,31 @@
 - **M6 Shared Context — Done**: EPIC-015 / OpenViking first; project-scoped identities, fail-closed ACL sharing, context policy/budgets, agent integrations, diagnostics and memory portability.
 - **M7 Operations — Done**: EPIC-016..020; transactional managed updates, recovery/portability, operational observability, CLI operations and validated multi-platform distribution.
 - **M8 Aspire Experience — Done (CI/release workflow)**: EPIC-021 integrated by PR #12 and release gates closed by PR #15 (2026-10-10). Required real Aspire/OpenViking/security smoke plus Linux/Windows tests and win-x64/linux-x64/linux-arm64 SHA-256-verified artifacts passed on main CI #139 at `cf6397a6543c7e74bb231ca085136425399a9d6e`. See `docs/agile/M8-REPORT.md` and `docs/release-readiness.md`.
-- **M9 Optional Sandbox Providers — Deferred**: selected EPIC-023 research; non-priority while M10 documentation/Web UI is delivered.
+- **M9 Optional Sandbox Providers — Planned / NEXT (not started)**: EPIC-023. Stabiliser l'abstraction des execution providers et le backend Docker natif, vérifier la parité de sécurité puis évaluer Dagger Container Use et DevPod par spikes. Une étude n'est pas une intégration obligatoire. Voir [EPIC-023](epics/EPIC-023.md).
+- **M10 Product UX & Local Web UI — Planned / AFTER M9 (not started)**: EPIC-024. Interface locale Blazor WebAssembly (.NET 10) + MudBlazor, MudExtensions optionnel, API ASP.NET Core sécurisée et aide utilisateur. La **première version écrite** du guide utilisateur est déjà publiée; aucun développement Web UI n'a commencé. Voir [EPIC-024](epics/EPIC-024.md), [plan UI](../product/WEB-UI-PLAN.md) et [guide](../INDEX.md).
 
-## Priorité produit après M8 (proposition, 2026-10-10)
+## Ordre impératif après M8 (décision 2026-10-10)
 
-La prise en main par un développeur et la documentation utilisateur deviennent la **prochaine priorité produit**, devant la recherche sur les fournisseurs de sandbox externes. La numérotation historique de M9 est conservée afin de ne pas réécrire le périmètre de l'EPIC-023.
+**M8 terminé → M9 exécuté et validé → M10 développé et validé.**
 
-- **M10 — Product UX, documentation & Local Web UI — Planned / Next priority** : EPIC-024, documentation utilisateur versionnée, tutoriel « premier projet / première modification », diagnostics compréhensibles et interface locale Blazor WebAssembly + MudBlazor. MudExtensions (CodeBeam.MudBlazor.Extensions) est un ajout **optionnel** après vérification de compatibilité et de valeur. L'interface est un **client** de la logique métier existante, jamais un remplacement de la CLI ; API ASP.NET Core locale, autorisation côté serveur, aucun secret dans WASM. Voir [EPIC-024](epics/EPIC-024.md), le [plan UI](../product/WEB-UI-PLAN.md) et le [guide utilisateur](../INDEX.md).
-- **M9 — Optional Sandbox Providers — Deferred** : EPIC-023 reste un jalon de recherche séparé, non bloquant pour M10. Pas de changement silencieux de provider Docker/Compose/Aspire.
+On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurité, documentation utilisateur et incidents de production peuvent toujours être prises en charge sans démarrer une fonctionnalité M10 avant la clôture de M9. L'UI est reportée après M9, pas annulée.
 
-### Ordre de réalisation de M10
+### M9 — Execution environments et sandbox providers (EPIC-023)
 
-1. **M10.1 — Documentation et onboarding** : vue d'ensemble, installation, parcours « créer un projet → lancer un agent → tester → arrêter », dépannage Windows/Compose/Aspire, liens depuis le README et le tableau de bord.
-2. **M10.2 — Fondations Web sécurisées** : modèle de déploiement local, API du contrôleur, session utilisateur, contrôle anti-CSRF/origine, autorisations, DTO et tests d'API ; revue des versions .NET 10/MudBlazor/MudExtensions.
-3. **M10.3 — Interface quotidienne (MVP)** : tableau de bord, projets, démarrer/arrêter/redémarrer, statut en direct, agents installés, diagnostics, logs filtrés et aide contextuelle ; aucune commande arbitraire dans le navigateur.
-4. **M10.4 — Parcours de développement assisté** : configuration guidée des agents, authentification via mécanisme sécurisé, lancement contrôlé des sessions, suivi du contexte/mémoire, ports et sauvegardes ; opérations sensibles confirmées et auditables.
-5. **M10.5 — Distribution et validation** : build Web/CLI Windows/Linux, démarrage automatique optionnel, tests E2E navigateurs, accessibilité, sécurité localhost, régression M1–M8, documentation des limitations.
+1. **PBI-2301** — Concevoir `IExecutionEnvironmentProvider`, la séparation orchestrateur / provider et la négociation des capacités.
+2. **PBI-2302** — Adapter Docker native containers au contrat, sans régression Compose/Aspire, avec test de cycle de vie.
+3. **PBI-2305** — Vérifier la parité de sécurité réelle des providers : `non-root`, `read-only`, `cap-drop=ALL`, `no-new-privileges`, pas de Docker socket, mounts privés, ports loopback, CA/TLS intact et fail-closed.
+4. **PBI-2303** — *Spike* Dagger Container Use **après stabilisation du backend natif** : compatibilité, sécurité, intégrations, coûts et décision Go/No-Go.
+5. **PBI-2304** — *Spike* DevPod **après stabilisation du backend natif** : DevContainer, isolation, montages, persistance et décision Go/No-Go.
 
-**Définition de Done** : un utilisateur novice peut installer HStack, enregistrer un projet, démarrer un environnement sûr, lancer un agent, retrouver ses diagnostics et suivre le tutoriel sans deviner les commandes. La CLI garde toutes ses capacités ; l'UI échoue de manière sûre en l'absence de backend. M10 est **planifié, non implémenté**.
+**Gate M9 → M10** : abstraction et provider natif livrés/testés, preuves de non-régression des parcours Compose/Aspire/agents/OpenViking, matrice de sécurité et capacités, spikes documentés (ou décisions formelles motivées), CI Windows/Linux verte et rapport de clôture M9. L'absence de nouveau provider externe est acceptable si les spikes concluent « No-Go ». M9 n'est **pas** Done aujourd'hui.
+
+### M10 — Documentation et interface utilisateur locale (EPIC-024)
+
+- **M10.1 — Documentation** : guide utilisateur et tutoriel initial publiés dans `docs/`; vérifications terrain et intégration à l'UI restent à effectuer.
+- **M10.2 — Fondations Web sécurisées** : contrat API hôte, session et protections Origin/CSRF/Host, Blazor WebAssembly + MudBlazor, évaluation optionnelle MudExtensions.
+- **M10.3 — UI quotidienne** : projets, statuts, orchestration Compose/Aspire, agents, logs et diagnostic.
+- **M10.4 — Développement assisté** : onboarding, agents et sessions, mémoire, ports, sauvegardes.
+- **M10.5 — Tests/distribution** : E2E navigateur, accessibilité, builds et packaging, CI/régressions.
+
+**Gate M10** : ne pas implémenter ni déclarer livré le Web Host/WASM tant que M9 n'est pas clôturé. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.

@@ -45,7 +45,7 @@ Application events are written under `.hstack/logs/hstack.log` with secret redac
 
 **New to HermesStack?** Start with the [French user wiki / manual](docs/INDEX.md) and the [hands-on developer tutorial](docs/guides/DEVELOPPER-AVEC-HSTACK.md) — register a source directory, run a coding agent, inspect changes, and troubleshoot common errors. The [roadmap](docs/agile/ROADMAP.md) tracks delivered and upcoming milestones.
 
-**Next product priority (M10)**: task-oriented documentation and a **secure localhost Web UI** using .NET 10 Blazor WebAssembly + MudBlazor, with MudExtensions optional. This UI is **planned, not yet shipped**. See [EPIC-024](docs/agile/epics/EPIC-024.md) and [UI architecture/roadmap](docs/product/WEB-UI-PLAN.md).
+**Milestone order: M9 first, then M10.** M9 (EPIC-023) is **not started**: execution-provider abstraction, native Docker adapter, security parity, and optional Dagger/DevPod research. The initial user guide is already available. **M10 (after M9)**: task-oriented documentation and a **secure localhost Web UI** using .NET 10 Blazor WebAssembly + MudBlazor, with MudExtensions optional. This UI is **planned after M9, not yet implemented**. See [M9 EPIC-023](docs/agile/epics/EPIC-023.md), [EPIC-024](docs/agile/epics/EPIC-024.md) and [UI architecture/roadmap](docs/product/WEB-UI-PLAN.md).
 
 ## Development workflow
 
