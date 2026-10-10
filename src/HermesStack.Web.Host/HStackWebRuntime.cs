@@ -52,11 +52,25 @@ public sealed class HStackWebRuntime
                 return packagedPath;
             }
 
-            var sourcePath = Path.GetFullPath(
-                Path.Combine(Directory.GetCurrentDirectory(), source.Replace('/', Path.DirectorySeparatorChar)));
-            if (File.Exists(sourcePath))
+            // dotnet run may use the project directory as CWD, whereas
+            // GitHub Actions invokes it from the solution directory.
+            // Search only for a real HStack source checkout (slnx marker).
+            foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
             {
-                return sourcePath;
+                for (var folder = new DirectoryInfo(start); folder is not null; folder = folder.Parent)
+                {
+                    if (!File.Exists(Path.Combine(folder.FullName, "HermesStack.slnx")))
+                    {
+                        continue;
+                    }
+
+                    var sourcePath = Path.Combine(
+                        folder.FullName, source.Replace('/', Path.DirectorySeparatorChar));
+                    if (File.Exists(sourcePath))
+                    {
+                        return sourcePath;
+                    }
+                }
             }
 
             throw new FileNotFoundException(
