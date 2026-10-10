@@ -1,6 +1,10 @@
 # HStack — Plan d’interface Web locale (M10)
 
-**Statut : proposition d’architecture, pas encore développée.** La CLI existante est le produit fonctionnel. L’UI doit offrir des chemins de moindre friction, **sans créer un deuxième moteur de gestion**.
+**Statut : proposition d’architecture, pas encore développée. Le développement M10 ne commence qu'après validation et clôture de M9 (EPIC-023).** La CLI existante est le produit fonctionnel. L’UI doit offrir des chemins de moindre friction, **sans créer un deuxième moteur de gestion**.
+
+## Ordre des jalons
+
+Le prochain développement est **M9** : abstraction des execution providers, backend Docker natif, parité de sécurité, puis spikes Dagger/DevPod. Le présent document **préserve le plan M10 sans autoriser son implémentation anticipée**. Le guide utilisateur existant continue à être amélioré au fil des corrections. Voir [Roadmap](../agile/ROADMAP.md) et [EPIC-023](../agile/epics/EPIC-023.md).
 
 ## Parcours à simplifier
 

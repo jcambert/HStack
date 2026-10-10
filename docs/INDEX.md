@@ -107,6 +107,6 @@ Pour les cas fréquents (Docker arrêté, permissions, Codex daemon, Aspire `HS2
 
 ## Une interface plus simple arrive dans la roadmap
 
-La **CLI fonctionne aujourd'hui**. L'interface **Blazor WebAssembly + MudBlazor** est prévue dans **M10** avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
+La **CLI fonctionne aujourd'hui**. Le développement suivant est **M9** (sandbox providers et sécurité), **pas encore réalisé**. L'interface **Blazor WebAssembly + MudBlazor** est prévue **après la clôture de M9**, dans **M10** avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
 
 **Pour découvrir les commandes exactes de ton binaire, `hstack.exe help` reste prioritaire**, car la version installée peut différer du code source sur `main`.

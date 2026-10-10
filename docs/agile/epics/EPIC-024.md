@@ -1,6 +1,6 @@
 # EPIC-024 — User Onboarding, Documentation & Secure Local Web UI
 
-**Milestone:** M10 — planned; **Priority:** next product milestone after M8; **Status:** not implemented.
+**Milestone:** M10 — planned **AFTER M9**; **Priority:** sequential milestone after EPIC-023 closure; **Status:** Web UI not implemented. The initial written user guide is already available.
 
 ## Why
 
@@ -36,7 +36,7 @@ The current command-line control plane is capable but its daily developer workfl
 
 ### PBI-2401 — User guide, hands-on tutorials and help navigation
 
-Delivered as an initial written draft in this documentation PR; check examples against the current CLI. Include installation, 10-minute first project, developing with Claude/Codex/Hermes/OpenCode, Herdr, Compose/Aspire, network ports, token/memory, backup, security limitations, and real error cases: Aspire HS2110 version mismatch and Codex daemon `Permission denied (os error 13)` with the `-- --no-daemon` workaround. Keep one single canonical entry point (`docs/INDEX.md`).
+An initial written draft has been merged into `main`; user/Windows walkthrough verification, examples and embedded UI help remain to be completed. Include installation, 10-minute first project, developing with Claude/Codex/Hermes/OpenCode, Herdr, Compose/Aspire, network ports, token/memory, backup, security limitations, and real error cases: Aspire HS2110 version mismatch and Codex daemon `Permission denied (os error 13)` with the `-- --no-daemon` workaround. Keep one single canonical entry point (`docs/INDEX.md`).
 
 ### PBI-2402 — API & WASM architecture spike
 
@@ -57,6 +57,10 @@ Guided onboarding, agent availability and auth instructions, session start/attac
 ### PBI-2406 — QA, packaging and maintenance
 
 E2E browser smoke, accessibility, Windows/Linux build and startup, REST contract tests, distribution of WASM assets with the CLI, upgrades/rollback, docs parity and M1–M8 CI non-regression.
+
+## Prerequisite milestone gate
+
+No implementation of M10 host/WASM UI, release or Done claim until M9 EPIC-023 is formally closed with native-provider tests, security parity evidence, upstream spike Go/No-Go decisions and green CI. Maintenance of the existing Markdown user guide may continue before M9 closure.
 
 ## Not in scope (initial UI)
 
