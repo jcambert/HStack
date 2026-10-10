@@ -36,19 +36,32 @@ done
 # The real Chromium engine follows the one-use URL-fragment bootstrap,
 # accepts the temporary local self-signed certificate for CI only, loads
 # Blazor WebAssembly and renders the actual MudBlazor project dashboard.
-timeout 90 "$chrome" \
-  --headless=new --no-sandbox --disable-dev-shm-usage \
-  --ignore-certificate-errors --no-first-run --no-default-browser-check \
-  --user-data-dir="$root/chrome-profile" \
-  --virtual-time-budget=30000 --dump-dom "$url/#$token" \
-  >"$root/browser.html" 2>"$root/browser.log" || {
-    echo '[M10] Chrome failed to start or render' >&2
-    tail -n 50 "$root/browser.log" >&2
-    exit 1
-  }
+# A virtual-time budget can expire while WASM/runtime downloads are still
+# completing (Chrome may show e.g. 98% rather than the actual dashboard).
+# Retry only with the SAME browser profile and session; the bootstrap fragment
+# cannot be reused, and a loading splash is never accepted as a pass.
+rendered=false
+for attempt in 1 2 3; do
+  target="$url/"
+  if [[ "$attempt" == 1 ]]; then target="$url/#$token"; fi
+  if timeout 150 "$chrome" \
+      --headless=new --no-sandbox --disable-dev-shm-usage \
+      --ignore-certificate-errors --no-first-run --no-default-browser-check \
+      --user-data-dir="$root/chrome-profile" \
+      --virtual-time-budget=90000 --dump-dom "$target" \
+      >"$root/browser.html" 2>"$root/browser.log"; then
+    if grep -q 'Ton atelier de développement' "$root/browser.html" && \
+       grep -q 'Centre de contrôle' "$root/browser.html" && \
+       grep -q 'Guide utilisateur' "$root/browser.html"; then
+      rendered=true
+      break
+    fi
+  fi
+  echo "[M10] Chrome dashboard not ready on attempt $attempt" >&2
+done
 
-if ! grep -q 'Ton atelier de développement' "$root/browser.html"; then
-  echo '[M10] Blazor WASM dashboard was not rendered' >&2
+if [[ "$rendered" != true ]]; then
+  echo '[M10] Blazor WASM dashboard did not render after bounded retries' >&2
   grep -E 'Exception|ERR_|error|Failed' "$root/browser.log" | tail -n 30 >&2 || true
   head -c 2500 "$root/browser.html" >&2
   exit 1
