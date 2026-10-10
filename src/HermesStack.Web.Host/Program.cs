@@ -215,7 +215,24 @@ app.MapPost("/api/projects/{id}/backup", async (
     return Results.Ok(new { path = await host.BackupAsync(id, ct) });
 });
 
-app.MapFallbackToFile("index.html");
+// The WASM project's static files remain served by the SDK.
+// The authenticated SPA fallback must be a physical file of the Web Host,
+// not a duplicate content declaration for Client/wwwroot/index.html.
+app.MapFallback((HttpContext context) =>
+{
+    var path = context.Request.Path;
+    if (path.StartsWithSegments("/api") ||
+        path.StartsWithSegments("/_framework") ||
+        path.StartsWithSegments("/_content") ||
+        Path.HasExtension(path.Value))
+    {
+        return Results.NotFound();
+    }
+
+    return Results.File(
+        Path.Combine(AppContext.BaseDirectory, "spa", "index.html"),
+        "text/html; charset=utf-8");
+});
 
 // We do NOT write the capability into ASP.NET access logs or persistent files.
 // The browser is opened with a fragment that never reaches the server.

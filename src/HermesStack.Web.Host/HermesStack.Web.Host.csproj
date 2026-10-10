@@ -15,12 +15,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
   <ItemGroup>
-    <!-- MapFallbackToFile needs an actual index.html under the Host's
-         wwwroot on both dotnet run and self-contained published bundles. -->
-    <Content Include="../HermesStack.Web.Client/wwwroot/index.html"
-             Link="wwwroot/index.html"
-             CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="Always" />
+    <!-- Separate SPA entrypoint is kept outside wwwroot to avoid
+         duplicating the referenced Client static web asset in the SDK. -->
+    <Content Include="spa/index.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
     <Content Include="../../docs/INDEX.md" Link="manual/INDEX.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
     <Content Include="../../docs/guides/DEVELOPPER-AVEC-HSTACK.md" Link="manual/DEVELOPPER-AVEC-HSTACK.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
   </ItemGroup>
