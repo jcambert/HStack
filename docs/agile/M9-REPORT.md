@@ -1,6 +1,6 @@
 # M9 — Optional Sandbox Providers validation report
 
-**Milestone:** M9 / EPIC-023. **Candidate state:** code and research prepared; final acceptance depends on green Linux/Windows CI for the exact code commit and confirmed merge to main. Do not read this pre-merge document as evidence that CI already passed.
+**Milestone:** M9 / EPIC-023. **Candidate state:** PR #19 code commit `fce766dc0015642eab0f31b24322c5f6b21c4b5d` passed all five required [CI #146](https://github.com/jcambert/HStack/actions/runs/38075662535) jobs on 2026-10-10. Formal closure and M10 authorization still depend on post-merge main CI.
 
 ## Implementation
 
@@ -27,8 +27,15 @@
 - No silent fallback, auto-upgrade or new provider selection by users.
 - Existing Linux M3–M8 runtime gates stay required and run on the same agent image (no duplicate full-image rebuild for M9).
 
+## CI candidate evidence
+
+- **Linux:** build, unit/integration, M3–M8 real Docker/Aspire/OpenViking regression and new M9 policy/OCI assertions — success in #146.
+- **Windows:** build and unit tests — success in #146.
+- **Packages:** win-x64, linux-x64 and linux-arm64 produced with SHA-256 checks — success in #146.
+- **No new runtime environment** or external sandbox provider was enabled in the shipping candidate.
+
 ## Remaining caveats / acceptance
 
 - The existing Linux x64 Docker/Aspire runner is the live OCI security baseline; Windows remains build/test, ARM64 remains cross-publish/package SHA validation. Native Windows/Aspire or ARM64 runtime equivalence cannot be asserted.
 - No external Container Use or DevPod PoC was executed. Their adoption remains blocked; a dedicated future evaluation may be funded if product needs justify it.
-- Mark M9 **Done** and allow M10 only after the GitHub Actions PR candidate and post-merge main gates are verified green and the exact SHA/evidence is recorded in a closure update.
+- The PR candidate gate is **green**; mark M9 **Done** and allow M10 only after the same source is merged and post-merge main gates are verified green. The final merge SHA and main CI run are recorded in the user-visible M9 completion report.

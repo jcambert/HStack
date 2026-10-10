@@ -1,6 +1,6 @@
 # EPIC-023 — External Sandbox Providers (M9)
 
-**Status:** Planned / next; **not implemented**. **Predecessor:** M8 completed. **Successor:** M10 UI (cannot start until M9 is Done).
+**Status:** Implementation complete in PR #19 candidate, green PR CI #146; awaiting post-merge main CI before formal closure. **Predecessor:** M8 completed. **Successor:** M10 UI (cannot start until M9 is Done).
 
 ## Intent and explicit boundary
 
@@ -49,4 +49,4 @@ Compare Dagger Container Use and DevPod with the **native baseline** on Windows/
 - Publish `docs/agile/M9-REPORT.md` with evidence, constraints, platform limits, decisions and next actions. Only then mark M9 Done and authorize implementation of M10.
 - Use consolidated coherent PRs/commits and avoid unnecessary GitHub CI reruns: **one validated change set per logical milestone increment**, not a push per documentation line.
 
-**Until these conditions pass, M9 is Planned, not Done.**
+**Gate evidence:** PR #19 head `fce766dc0015642eab0f31b24322c5f6b21c4b5d` passed [CI #146](https://github.com/jcambert/HStack/actions/runs/38075662535) (Linux Compose/Aspire E2E, Windows tests, 3 checksum-verified packages). A green post-merge main workflow is still mandatory to close M9. Dagger and DevPod findings are desk-based No-Go adoption decisions, not executed external PoCs.
