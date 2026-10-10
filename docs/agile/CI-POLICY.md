@@ -6,6 +6,7 @@ HermesStack validates every pull request and every push to `main`.
 
 - Linux restore/build/unit/integration tests.
 - M3 Sessions, M4 Network/Security, M5 Token Efficiency, M6 Shared Context, M7 Operations regression gates.
+- **M9 Native Provider security/unit tests** run in the existing Linux and Windows unit-test steps (no duplicate Docker image build). M3 Compose + M8 Aspire E2E smoke remain the real OCI parity gates and M8 adds M9 host-namespace/mount checks.
 - **M8 Aspire end-to-end runtime gate** (`tests/e2e/m8-smoke.sh`) with the pinned official CLI 13.6.0.
 - Windows restore/build/unit tests.
 - Delivery candidate packaging for win-x64, linux-x64, linux-arm64; verify each SHA-256 manifest before upload.

@@ -12,6 +12,7 @@ using HermesStack.Application.Updates;
 using HermesStack.Aspire;
 using HermesStack.Docker.Compose;
 using HermesStack.Docker.Context;
+using HermesStack.Docker.Execution;
 using HermesStack.Docker.Security;
 using HermesStack.Docker.Tokens;
 using HermesStack.Domain.Integrations;
@@ -108,8 +109,14 @@ internal static class HStackCli
                 composeOrchestrator,
                 aspireOrchestrator
             ]);
+            // Native Docker remains the only shipped execution provider.
+            // Compose/Aspire continue to own their concrete lifecycle.
+            var nativeExecutionProvider = new NativeContainerExecutionProvider(
+                orchestratorRegistry,
+                processRunner);
             var orchestrator = new RoutedWorkspaceOrchestrator(
-                orchestratorRegistry);
+                orchestratorRegistry,
+                nativeExecutionProvider);
             var integrations = CreateIntegrationRegistry(toolchain);
             var agents = CreateAgentHarnessRegistry(orchestrator);
             var contextRegistry = new ContextProviderRegistry(
