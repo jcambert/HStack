@@ -29,6 +29,10 @@ on_exit() {
     docker ps -a --filter 'name=hstack-memory-openviking' >&2 || true
     docker logs --tail 60 hstack-memory-openviking >&2 || true
   fi
+  if [[ -d "$home_dir" ]]; then
+    run_hstack down aspire-demo --orchestrator aspire >/dev/null 2>&1 || true
+    run_hstack memory stop >/dev/null 2>&1 || true
+  fi
   rm -f "$output_file"
   rm -rf "$home_dir" "$project_dir"
 }
@@ -43,7 +47,10 @@ run_hstack() {
 }
 
 echo '[M8] Initialize Aspire as the default orchestrator'
-run_hstack init --orchestrator aspire --ci-base-image-only >"$output_file"
+# Earlier in the same required Linux CI job, M3 builds and checks the real,
+# fully pinned Claude/Codex/Hermes/OpenCode image. Do not substitute a base
+# image or download the entire toolchain again.
+run_hstack init --orchestrator aspire --ci-reuse-verified-full-image >"$output_file"
 grep -q 'Aspire' "$output_file"
 grep -q 'default: aspire' "$home_dir/config/hstack.yaml"
 grep -q 'exposeToLan: false' "$home_dir/config/hstack.yaml"
@@ -56,13 +63,42 @@ run_hstack plan aspire-demo --orchestrator aspire >"$output_file"
 grep -q 'no-new-privileges' "$output_file"
 grep -q 'deployment.json' "$output_file"
 
-echo '[M8] Skip OpenViking startup in CI smoke (non-root bind-mounted secret permissions are tracked separately)'
+echo '[M8] Enable project-scoped OpenViking: startup and private non-root mounts are required'
+run_hstack memory enable aspire-demo >"$output_file"
 
 echo '[M8] Start real workspace through Aspire'
 run_hstack up aspire-demo --orchestrator aspire >"$output_file"
 run_hstack status aspire-demo --json --orchestrator aspire >"$output_file"
 grep -q '"workspace":"Running"' "$output_file"
 grep -q '"orchestrator":"aspire"' "$output_file"
+
+echo '[M8] Enforce live OCI workspace isolation (not only deployment-plan intent)'
+workspace='hstack-aspire-demo-workspace'
+test "$(docker inspect --format '{{.HostConfig.Privileged}}' "$workspace")" = false
+test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$workspace")" = true
+test "$(docker exec "$workspace" id -u)" != 0
+docker exec "$workspace" test ! -S /var/run/docker.sock
+docker inspect --format '{{json .HostConfig.CapDrop}}' "$workspace" | jq -e 'index("ALL")' >/dev/null
+docker inspect --format '{{json .HostConfig.SecurityOpt}}' "$workspace" | jq -e 'any(.[]; startswith("no-new-privileges"))' >/dev/null
+test "$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$workspace")" != host
+docker inspect --format '{{json .HostConfig.PortBindings}}' "$workspace" |
+  jq -e 'all(.[]?[]?; .HostIp == "127.0.0.1")' >/dev/null
+
+echo '[M8] Verify full agent image, not a CI base-image substitution'
+for agent in claude codex hermes opencode; do
+  docker exec "$workspace" "$agent" --version
+done
+test "$(docker image inspect hstack/workspace-full:0.8.0 --format '{{index .Config.Labels "io.hstack.kind"}}')" = workspace-full
+
+echo '[M8] Verify OpenViking operates non-root with owner-private host credentials'
+context='hstack-memory-openviking'
+test "$(docker exec "$context" id -u)" != 0
+docker exec "$context" test -r /run/secrets/openviking_root_api_key
+docker exec "$context" test -r /app/.openviking/ov.conf
+test "$(stat -c '%a' "$home_dir/runtime/openviking/root-api-key")" = 600
+test "$(stat -c '%a' "$home_dir/data/openviking/ov.conf")" = 600
+test "$(docker inspect --format '{{.HostConfig.Privileged}}' "$context")" = false
+run_hstack memory doctor aspire-demo >"$output_file"
 
 echo '[M8] Validate Aspire dashboard, resources and agent state'
 run_hstack aspire status aspire-demo >"$output_file"
