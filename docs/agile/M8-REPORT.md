@@ -1,22 +1,31 @@
-# M8 Aspire Experience — Integration report
+# M8 Aspire Experience — validation report
 
-**Status (2026-10-09): integrated into main, release validation pending.**
+**Status (2026-10-10): runtime-validated on PR #15; release-artifact and post-merge validation pending.**
 
-## Integration evidence
+## Integration and runtime evidence
 
-- PR #12 merged to main with squash commit `e43beefc5cf1c3b6deed8d348134ef813ab7310c`.
-- CI run #125 passed Linux and Windows build/unit checks, Linux integration tests and M3–M7 regression smoke checks.
-- The M8 Aspire end-to-end smoke was deliberately removed from required CI for this integration; this is **not** evidence of Aspire runtime success.
+- PR #12 integrated EPIC-021 on main (2026-10-09).
+- PR #15 fixes the generated AppHost project: the single experimental `ASPIRECERTIFICATES001` diagnostic is allowed without disabling `TreatWarningsAsErrors`.
+- [CI #136](https://github.com/jcambert/HStack/actions/runs/38047248670) succeeded (Linux + Windows) for the PR candidate:
+  - .NET builds, unit and integration tests, and M3–M7 regression gates;
+  - pinned Aspire CLI 13.6.0 and the **required** `tests/e2e/m8-smoke.sh` gate;
+  - actual Aspire AppHost compilation, workspace startup, dashboard/status, and orchestrator switching;
+  - Docker inspection: non-root workspace, read-only root, all capabilities dropped, no privileges, no Docker socket, and loopback-only publishing;
+  - OpenViking startup under the host owner's numeric non-root Linux identity, 0600 private config/secret files, and health diagnostics;
+  - the *real full agent image*, built and exercised by M3 on the same Linux runner, re-used by M8 only after label/version/hash verification. No base-image substitution.
+- Windows build and unit tests also succeeded in CI #136.
 
-## Open issues / release blockers
+## Remaining release checks
 
-1. Fix generated Aspire AppHost configuration in `AspireDeploymentPlanWriter.cs` to explicitly handle the experimental `WithoutHttpsCertificate()` API (`ASPIRECERTIFICATES001`).
-2. Demonstrate workspace startup under the mandatory read-only filesystem without weakening container isolation or TLS trust.
-3. Revalidate OpenViking startup and non-root access to mounted secret/config files; the CI smoke currently skips its startup.
-4. Exercise the complete agent-image build instead of the CI base-image substitution that avoids upstream HTTP 429 throttling.
-5. Re-enable `tests/e2e/m8-smoke.sh` as a required CI gate and capture passing Linux M8 and Windows checks.
-6. Verify release artifacts and SHA-256 manifests for win-x64, linux-x64 and linux-arm64 before Aspire-enabled delivery.
+- [ ] PR candidate packaging for `win-x64`, `linux-x64`, and `linux-arm64` passes with verified SHA-256 manifests (now required by `publish-artifacts` on PRs).
+- [ ] Merge the **tested head SHA** only after Linux M8, Windows, and artifacts are all green.
+- [ ] Re-check the post-merge `main` workflow and its three delivery artifacts.
+- [ ] Update the final release note / roadmap to the observed post-merge result.
 
-## Decision
+Security remains mandatory across Compose and Aspire. Neither `WithoutHttpsCertificate()`'s scoped compile-time diagnostic nor its avoidance of Aspire certificate injection disables HStack corporate CA trust or TLS verification.
 
-Merge of M8 implementation is complete. **Aspire-enabled release remains blocked** until the above acceptance criteria are met. See `docs/release-readiness.md` for the delivery checklist.
+## Operating constraints
+
+The Linux CI validates non-root OpenViking on a fresh, runner-owned data root. Existing installations with root-owned historical OpenViking data may need a **controlled ownership migration** after backup; do not widen file permissions to 0777 or disclose the root key.
+
+M9 remains deferred until the M8 release checks are closed.

@@ -44,7 +44,11 @@
 - Validation completed on Linux and Windows with M3-M7 regression gates green.
 - Self-contained delivery artifacts published for win-x64, linux-x64 and linux-arm64 with SHA-256 manifests.
 
+## Runtime-validated — M8 Aspire Experience
+
+- EPIC-021 integrated in PR #12; runtime security, pinned Aspire CLI, full image, OpenViking and workspace workflows validated in PR #15 CI #136.
+- Required M8 Linux smoke and Windows build/unit passed; multi-RID delivery artifact and post-merge main checks are still release blockers.
+
 ## Later
 
-- Aspire Experience — M8.
-- Optional sandbox-provider spikes remain deferred until the native backend is stable.
+- Optional sandbox-provider spikes (M9) remain deferred until M8 release readiness is confirmed.
