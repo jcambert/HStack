@@ -387,9 +387,18 @@ public sealed class OpenVikingServiceManager(
         await AtomicWriteAsync(runtimeSecret, rootKey + Environment.NewLine, cancellationToken);
         ProtectFile(runtimeSecret);
 
+        // The pinned upstream image defaults to root. Run OpenViking under the
+        // host owner of the bind-mounted private config/state files instead:
+        // ov.conf and the root-key source remain owner-readable (0600).
+        var serviceUser = await GetServiceUserAsync(cancellationToken);
         var service = new Dictionary<string, object?>
         {
             ["image"] = image,
+            ["user"] = serviceUser,
+            ["environment"] = new Dictionary<string, string>
+            {
+                ["XDG_CACHE_HOME"] = "/app/.openviking/.cache"
+            },
             ["entrypoint"] = new[]
             {
                 "/bin/sh",
@@ -446,6 +455,33 @@ public sealed class OpenVikingServiceManager(
             ComposeFile,
             _yaml.Serialize(document),
             cancellationToken);
+    }
+
+    private async Task<string> GetServiceUserAsync(CancellationToken cancellationToken)
+    {
+        // On Docker Desktop for Windows the Linux guest owns its own UID map.
+        // The service still runs under an explicit non-root identity.
+        if (OperatingSystem.IsWindows())
+        {
+            return "1000:1000";
+        }
+
+        var uid = await processRunner.RunAsync(
+            new ProcessRequest("id", ["-u"], ThrowOnError: true),
+            cancellationToken);
+        var gid = await processRunner.RunAsync(
+            new ProcessRequest("id", ["-g"], ThrowOnError: true),
+            cancellationToken);
+
+        if (!int.TryParse(uid.StandardOutput.Trim(), out var userId) ||
+            !int.TryParse(gid.StandardOutput.Trim(), out var groupId) ||
+            userId <= 0 || groupId <= 0)
+        {
+            throw new InvalidOperationException(
+                "OpenViking requires a non-root host UID/GID for private bind-mounted credentials and state.");
+        }
+
+        return $"{userId}:{groupId}";
     }
 
     private async Task WaitForHealthAsync(CancellationToken cancellationToken)
