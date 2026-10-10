@@ -38,6 +38,10 @@ jobs:
         run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
       - name: Integration tests
         run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release
+      - name: M10 secure API and real Chrome WASM rendering gate (required)
+        run: |
+          bash tests/e2e/m10-web-smoke.sh
+          bash tests/e2e/m10-browser-smoke.sh
       - name: M3 Sessions regression gate
         run: bash tests/e2e/m3-smoke.sh
       - name: M4 Network & Security regression gate
@@ -97,6 +101,34 @@ jobs:
           -p:DebugType=None
           -p:DebugSymbols=false
           -o artifacts/${{ matrix.rid }}
+      - name: Publish local Web UI (Blazor WASM + ASP.NET Core)
+        run: >
+          dotnet publish src/HermesStack.Web.Host/HermesStack.Web.Host.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishSingleFile=false
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o artifacts/${{ matrix.rid }}/web
+      - name: Verify bundled Web UI assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Host SPA entrypoint is deliberately separate from the Client's
+          # SDK-managed static assets (avoid duplicate index.html in builds).
+          test -f artifacts/${{ matrix.rid }}/web/spa/index.html
+          test -f artifacts/${{ matrix.rid }}/web/wwwroot/_framework/blazor.webassembly.js
+          test -f artifacts/${{ matrix.rid }}/web/manual/INDEX.md
+          test -f artifacts/${{ matrix.rid }}/assets/toolchain.lock.yaml
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            test -f artifacts/${{ matrix.rid }}/web/hstack-web.exe
+            test -f artifacts/${{ matrix.rid }}/hstack.exe
+          else
+            test -x artifacts/${{ matrix.rid }}/web/hstack-web
+            test -x artifacts/${{ matrix.rid }}/hstack
+          fi
+          grep -q 'HermesStack' artifacts/${{ matrix.rid }}/web/spa/index.html
       - name: Package
         shell: bash
         run: |

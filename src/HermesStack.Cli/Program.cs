@@ -389,6 +389,7 @@ internal static class HStackCli
                 "orchestrator" => await orchestratorCli.RunAsync(args[1..]),
                 "plan" => await orchestratorCli.PlanAsync(args[1..]),
                 "aspire" => await aspireCli.RunAsync(args[1..]),
+                "ui" => await UiAsync(args[1..], processRunner),
                 "update" => await UpdateAsync(
                     args[1..],
                     toolchain,
@@ -1743,6 +1744,26 @@ internal static class HStackCli
             : null;
     }
 
+    private static async Task<int> UiAsync(string[] args, IProcessRunner runner)
+    {
+        var executable = Path.Combine(
+            AppContext.BaseDirectory,
+            "web",
+            OperatingSystem.IsWindows() ? "hstack-web.exe" : "hstack-web");
+        if (!File.Exists(executable))
+        {
+            throw new FileNotFoundException(
+                "HermesStack Web UI is not packaged beside this CLI. " +
+                "Download a complete distribution or, from the source repository, " +
+                "run 'dotnet run --project src/HermesStack.Web.Host -- --no-browser'.",
+                executable);
+        }
+
+        var result = await runner.RunAsync(
+            new ProcessRequest(executable, args, CaptureOutput: false));
+        return result.ExitCode;
+    }
+
     private static int ShowVersion(string workspaceVersion)
     {
         AnsiConsole.MarkupLine(
@@ -1755,6 +1776,7 @@ internal static class HStackCli
         Console.Out.WriteLine("""
 hstack
   hstack init [--orchestrator compose|aspire]
+  hstack ui [--port <1024..65535>] [--no-browser]
   hstack project list [--json]
   hstack project show <id> [--json]
   hstack project add <id> <hostPath> [--name <name>] [--quiet]

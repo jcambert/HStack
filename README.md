@@ -56,3 +56,8 @@ Every pull request runs Linux and Windows build/unit validation. Linux also runs
 M8 was integrated through PR #12 and closed by PR #15. The pinned Aspire CLI 13.6.0 starts the real secure non-root/read-only workspace with the full agent image and OpenViking, while Docker Compose remains supported. All required M3–M8 Linux gates and Windows compilation/unit tests passed on the **merged main commit** `cf6397a6543c7e74bb231ca085136425399a9d6e`; [CI #139](https://github.com/jcambert/HStack/actions/runs/38048112197) also published the `win-x64`, `linux-x64`, and `linux-arm64` packages with SHA-256 verification.
 
 This certifies the supported GitHub Actions CI/release workflow; it is not a claim of exhaustive testing on every target device. Existing OpenViking installs with root-owned bind-mounted state require a backed-up, controlled ownership migration before non-root startup. See the [M8 report](docs/agile/M8-REPORT.md) and [release readiness](docs/release-readiness.md).
+
+
+## Local Web UI — M10 (candidate, awaiting CI)
+
+The M10 candidate adds **`hstack ui`**, a localhost-only HTTPS Blazor WebAssembly/MudBlazor interface for projects, Docker Compose/Aspire status, agents, diagnostics, ports, backup and bundled task-oriented help. It **reuses existing Application services** and leaves the CLI unchanged for all existing commands. See the [UI user guide](docs/product/WEB-UI-USER-GUIDE.md) and [ADR-024](docs/agile/adr/ADR-024.md). The complete distribution bundles `web/hstack-web` (or `web/hstack-web.exe`) next to the CLI; `hstack ui` is not available in older packages. Local HTTPS uses an ephemeral self-signed certificate, with explicit browser trust on first visit. No MudExtensions dependency or remote browser shell is included.

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HermesStack.Web.Client</RootNamespace>
+    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HermesStack.Web.Contracts/HermesStack.Web.Contracts.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="MudBlazor" />
+  </ItemGroup>
+</Project>

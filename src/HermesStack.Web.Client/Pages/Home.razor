@@ -1,0 +1,471 @@
+@page "/"
+@implements IDisposable
+@inject HStackApi Api
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-4 pb-10">
+    <MudStack Spacing="3">
+        <div class="hstack-heading">
+            <MudText Typo="Typo.h4">Ton atelier de développement</MudText>
+            <MudText Typo="Typo.subtitle1" Class="hstack-subtitle">
+                Projets locaux · environnements isolés · agents IA
+            </MudText>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">@_error</MudAlert>
+        }
+        @if (!string.IsNullOrWhiteSpace(_notice))
+        {
+            <MudAlert Severity="Severity.Success" Dense="true">@_notice</MudAlert>
+        }
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="0" Class="hstack-card hstack-panel">
+                    <MudText Typo="Typo.overline">PROJETS ENREGISTRÉS</MudText>
+                    <MudText Typo="Typo.h4">@_projects.Count</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="0" Class="hstack-card hstack-panel">
+                    <MudText Typo="Typo.overline">ENVIRONNEMENTS ACTIFS</MudText>
+                    <MudText Typo="Typo.h4">@_projects.Count(x => x.State == "Running")</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="0" Class="hstack-card hstack-panel">
+                    <MudText Typo="Typo.overline">BACKEND ACTUEL</MudText>
+                    <MudText Typo="Typo.h5">Compose / Aspire</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="pa-3 hstack-card" Elevation="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.h6">Centre de contrôle</MudText>
+                <MudButton Color="Color.Primary" Variant="Variant.Outlined" Disabled="_busy" OnClick="RefreshAsync">
+                    Actualiser
+                </MudButton>
+            </MudStack>
+            <MudTabs Rounded="true" Elevation="0" Color="Color.Primary">
+                <MudTabPanel Text="Projets">
+                    <MudStack Spacing="3" Class="pa-3">
+                        <MudText Typo="Typo.subtitle1">Ajouter un dossier de code existant</MudText>
+                        <MudGrid>
+                            <MudItem xs="12" sm="3"><MudTextField @bind-Value="_newId" Label="Identifiant" Placeholder="mon-projet" /></MudItem>
+                            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_newName" Label="Nom affiché" /></MudItem>
+                            <MudItem xs="12" sm="5"><MudTextField @bind-Value="_newPath" Label="Chemin complet sur le PC" Placeholder="C:\Dev\MonProjet" /></MudItem>
+                        </MudGrid>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="AddProjectAsync">
+                            Enregistrer le projet
+                        </MudButton>
+                        <MudDivider />
+                        @if (_projects.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info">
+                                Aucun projet. Choisis d'abord un dossier source existant.
+                                HermesStack ne supprime jamais tes fichiers de code.
+                            </MudAlert>
+                        }
+                        @foreach (var item in _projects)
+                        {
+                            <MudPaper @key="item.Id" Class="pa-4 hstack-card" Elevation="0">
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.h6">@item.Name</MudText>
+                                        <MudText Class="@($"hstack-status {item.State.ToLowerInvariant()}")">@item.State</MudText>
+                                    </MudStack>
+                                    <MudText Class="hstack-meta">@item.Id · @item.Orchestrator · @item.HostPath</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(item.Diagnostic))
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Dense="true">@item.Diagnostic</MudAlert>
+                                    }
+                                    <MudStack Row="true" Class="hstack-actions">
+                                        <MudButton Color="Color.Success" Variant="Variant.Outlined" Disabled="_busy"
+                                                   OnClick="@(() => Ask(item.Id, "up"))">Démarrer</MudButton>
+                                        <MudButton Variant="Variant.Outlined" Disabled="_busy"
+                                                   OnClick="@(() => Ask(item.Id, "down"))">Arrêter</MudButton>
+                                        <MudButton Variant="Variant.Outlined" Disabled="_busy"
+                                                   OnClick="@(() => Ask(item.Id, "restart"))">Redémarrer</MudButton>
+                                        <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="@(() => OpenDetailsAsync(item.Id))">
+                                            Détails et agents
+                                        </MudButton>
+                                        <MudButton Color="Color.Error" Variant="Variant.Text" Disabled="_busy"
+                                                   OnClick="@(() => Ask(item.Id, "delete"))">Retirer</MudButton>
+                                    </MudStack>
+                                    @if (_pendingId == item.Id)
+                                    {
+                                        <MudAlert Severity="Severity.Warning">
+                                            Confirmer l'action <b>@_pendingAction</b> sur <b>@item.Id</b> ?
+                                            Aucune commande arbitraire ne sera exécutée.
+                                        </MudAlert>
+                                        <MudStack Row="true">
+                                            <MudButton Color="Color.Error" Variant="Variant.Filled"
+                                                       Disabled="_busy" OnClick="ConfirmAsync">Confirmer</MudButton>
+                                            <MudButton OnClick="@(() => CancelPending())">Annuler</MudButton>
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Développer">
+                    <MudStack Spacing="3" Class="pa-3">
+                        <MudText Typo="Typo.h6">Développer avec un agent</MudText>
+                        <MudAlert Severity="Severity.Info">
+                            Choisis un projet et démarre son workspace. Les agents s'exécutent à l'intérieur du conteneur ;
+                            leur authentification reste dans le dossier privé du projet.
+                        </MudAlert>
+                        <MudSelect T="string" Label="Projet" @bind-Value="_selectedId">
+                            @foreach (var project in _projects)
+                            {
+                                <MudSelectItem T="string" Value="@project.Id">@project.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="LoadDetailsAsync"
+                                   Disabled="_busy">Vérifier les agents, mémoire et logs</MudButton>
+                        @if (_agents.Count > 0)
+                        {
+                            <MudGrid>
+                                @foreach (var agent in _agents)
+                                {
+                                    <MudItem xs="12" sm="6" @key="agent.Id">
+                                        <MudPaper Class="pa-3 hstack-card" Elevation="0">
+                                            <MudText Typo="Typo.subtitle1"><b>@agent.Name</b></MudText>
+                                            <MudText Color="@(agent.Installed ? Color.Success : Color.Warning)">
+                                                @(agent.Installed ? "Disponible" : "Non confirmé")
+                                            </MudText>
+                                            <MudText Class="hstack-meta">@agent.Version</MudText>
+                                            <MudText Typo="Typo.caption">Dans PowerShell :</MudText>
+                                            <MudText Class="hstack-meta">hstack auth @agent.Id --project @_selectedId</MudText>
+                                            <MudText Class="hstack-meta">hstack @agent.Id @_selectedId</MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        }
+                        @if (_memory is not null)
+                        {
+                            <MudAlert Severity="Severity.Info">
+                                Mémoire : @(_memory.Enabled ? "activée" : "désactivée") · Provider : @_memory.ProviderId
+                            </MudAlert>
+                        }
+                        <MudText Typo="Typo.subtitle1">Journal du workspace (80 dernières lignes)</MudText>
+                        <pre class="hstack-manual">@(_logs ?? "Sélectionne un workspace pour afficher ses logs. Les informations sensibles courantes sont masquées.")</pre>
+                        <MudText Typo="Typo.subtitle1">Sessions persistantes Herdr</MudText>
+                        <MudText>La console des agents conserve les flux interactifs et de connexion. Pour continuer :</MudText>
+                        <pre class="hstack-manual">hstack session init @_selectedId
+hstack herdr @_selectedId
+hstack token status @_selectedId
+hstack memory status @_selectedId</pre>
+                        <MudText Class="hstack-meta">
+                            Les commandes d'authentification sont volontairement lancées dans le terminal,
+                            jamais dans le navigateur où des identifiants pourraient être divulgués.
+                        </MudText>
+                    </MudStack>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Paramètres projet">
+                    <MudStack Class="pa-3" Spacing="3">
+                        <MudSelect T="string" Label="Projet à configurer" @bind-Value="_selectedId">
+                            @foreach (var project in _projects)
+                            {
+                                <MudSelectItem T="string" Value="@project.Id">@project.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Variant="Variant.Outlined" OnClick="LoadEditAsync" Disabled="_busy">Charger la configuration</MudButton>
+                        <MudTextField @bind-Value="_editName" Label="Nom du projet" />
+                        <MudTextField @bind-Value="_editPath" Label="Chemin sur le PC" />
+                        <MudSelect T="string" Label="Orchestrateur" @bind-Value="_editOrchestrator">
+                            <MudSelectItem T="string" Value="@("compose")">Docker Compose</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("aspire")">Aspire (13.6.0 requis)</MudSelectItem>
+                        </MudSelect>
+                        <MudButton Color="Color.Primary" Disabled="_busy" OnClick="EditAsync">
+                            Enregistrer (workspace arrêté uniquement)
+                        </MudButton>
+                        <MudDivider />
+                        <MudText Typo="Typo.subtitle1">Port de développement local</MudText>
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int" @bind-Value="_newContainerPort" Label="Port dans le conteneur" Min="1" Max="65535" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int" @bind-Value="_newHostPort" Label="Port sur le PC" Min="1" Max="65535" />
+                            </MudItem>
+                        </MudGrid>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy" OnClick="AddPortAsync">
+                            Ajouter (127.0.0.1 seulement)
+                        </MudButton>
+                        @if (_selectedProject is not null)
+                        {
+                            @foreach (var port in _selectedProject.Ports)
+                            {
+                                <MudStack Row="true" AlignItems="AlignItems.Center" @key="port.Container">
+                                    <MudText>127.0.0.1:@port.Host → conteneur :@port.Container</MudText>
+                                    <MudButton Size="Size.Small" Color="Color.Error" Disabled="_busy"
+                                               OnClick="@(() => Ask(_selectedId, $"port:{port.Container}"))">Retirer</MudButton>
+                                </MudStack>
+                            }
+                        }
+                        <MudDivider />
+                        <MudButton Color="Color.Secondary" Variant="Variant.Filled" Disabled="_busy"
+                                   OnClick="@(() => Ask(_selectedId, "backup"))">Sauvegarder l'état du projet</MudButton>
+                        @if (_pendingId == _selectedId && (_pendingAction == "backup" || (_pendingAction?.StartsWith("port:", StringComparison.Ordinal) ?? false)))
+                        {
+                            <MudStack Row="true">
+                                <MudText>Confirmer @_pendingAction pour @_selectedId ?</MudText>
+                                <MudButton Color="Color.Warning" OnClick="ConfirmAsync">Confirmer</MudButton>
+                                <MudButton OnClick="@(() => CancelPending())">Annuler</MudButton>
+                            </MudStack>
+                        }
+                        <MudText Class="hstack-meta">
+                            Les sauvegardes ne remplacent pas les commits Git et ne copient pas ton code source.
+                        </MudText>
+                    </MudStack>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Diagnostics">
+                    <MudStack Class="pa-3" Spacing="3">
+                        <MudButton Color="Color.Primary" Variant="Variant.Outlined"
+                                   Disabled="_busy" OnClick="RefreshDiagnosticsAsync">Rafraîchir les prérequis</MudButton>
+                        @if (_diagnostics is not null)
+                        {
+                            <MudAlert Severity="Severity.Info">Version requise du CLI Aspire : @_diagnostics.AspireRequiredVersion</MudAlert>
+                            @foreach (var backend in _diagnostics.Backends)
+                            {
+                                <MudPaper Class="pa-3 hstack-card" Elevation="0" @key="backend.Id">
+                                    <MudText Typo="Typo.h6">@backend.Id — @(backend.Available ? "Disponible" : "Indisponible")</MudText>
+                                    <MudText>@backend.Version</MudText>
+                                    @if (!backend.Available)
+                                    {
+                                        <MudAlert Severity="Severity.Warning">@backend.Reason</MudAlert>
+                                    }
+                                </MudPaper>
+                            }
+                        }
+                        <MudText Typo="Typo.subtitle1">Commandes utiles sur ton PC</MudText>
+                        <pre class="hstack-manual">hstack doctor
+hstack orchestrator list
+hstack doctor --aspire
+Get-Command aspire -All
+aspire --version</pre>
+                        <MudAlert Severity="Severity.Warning">
+                            HS2110 : mets à jour le CLI Aspire vers la version épinglée. N'assouplis ni TLS ni la sécurité du conteneur.
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Guide utilisateur">
+                    <MudStack Class="pa-3" Spacing="2">
+                        <MudText Typo="Typo.h6">Wiki HermesStack · Développer sans deviner les commandes</MudText>
+                        <MudStack Row="true">
+                            <MudButton Variant="Variant.Outlined" OnClick="@(() => LoadManualAsync("start"))">
+                                Démarrage et principes
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" OnClick="@(() => LoadManualAsync("develop"))">
+                                Tutoriel de développement
+                            </MudButton>
+                        </MudStack>
+                        <MudTextField @bind-Value="_manualSearch" Label="Chercher un mot dans le guide" />
+                        <pre class="hstack-manual">@ShownManual</pre>
+                    </MudStack>
+                </MudTabPanel>
+            </MudTabs>
+        </MudPaper>
+        <MudText Typo="Typo.caption" Class="hstack-muted">
+            HStack exécute les actions depuis le backend local uniquement · Port accessible sur 127.0.0.1 ·
+            Pas de shell Web ni de secrets envoyés au client.
+        </MudText>
+    </MudStack>
+</MudContainer>
+
+@code {
+    private List<ProjectInfo> _projects = [];
+    private List<AgentInfo> _agents = [];
+    private DiagnosticsInfo? _diagnostics;
+    private MemoryInfo? _memory;
+    private ProjectInfo? _selectedProject;
+    private string? _logs;
+    private string? _error;
+    private string? _notice;
+    private string? _selectedId;
+    private string? _pendingId;
+    private string? _pendingAction;
+    private string _newId = "";
+    private string _newName = "";
+    private string _newPath = "";
+    private string _editName = "";
+    private string _editPath = "";
+    private string _editOrchestrator = "compose";
+    private int _newContainerPort = 3000;
+    private int _newHostPort = 3000;
+    private string _manual = "Choisis un chapitre pour afficher le guide.";
+    private string _manualSearch = "";
+    private bool _busy;
+    private PeriodicTimer? _poller;
+
+    private string ShownManual =>
+        string.IsNullOrWhiteSpace(_manualSearch) ? _manual :
+        string.Join("\n", _manual.Split('\n').Where(
+            line => line.Contains(_manualSearch, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        await RefreshDiagnosticsAsync();
+        await LoadManualAsync("start");
+        _poller = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        _ = PollAsync();
+    }
+
+    private async Task PollAsync()
+    {
+        try
+        {
+            while (_poller is not null && await _poller.WaitForNextTickAsync())
+            {
+                if (!_busy)
+                {
+                    await InvokeAsync(RefreshAsync);
+                }
+            }
+        }
+        catch (ObjectDisposedException) { }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _projects = await Api.ProjectsAsync();
+            if (_selectedId is null || _projects.All(x => x.Id != _selectedId))
+            {
+                _selectedId = _projects.FirstOrDefault()?.Id;
+            }
+            _selectedProject = _projects.FirstOrDefault(x => x.Id == _selectedId);
+        }
+        catch (Exception)
+        {
+            _error = "Connexion API impossible. Vérifie que le serveur HStack UI fonctionne.";
+        }
+    }
+
+    private async Task WorkAsync(Func<Task> job, string message)
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        _notice = null;
+        try
+        {
+            await job();
+            _notice = message;
+            await RefreshAsync();
+        }
+        catch (Exception e)
+        {
+            _error = e.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Ask(string? id, string action)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return;
+        _pendingId = id;
+        _pendingAction = action;
+    }
+
+    private void CancelPending()
+    {
+        _pendingId = null;
+        _pendingAction = null;
+    }
+
+    private async Task ConfirmAsync()
+    {
+        var id = _pendingId;
+        var action = _pendingAction;
+        CancelPending();
+        if (id is null || action is null) return;
+        await WorkAsync(async () =>
+        {
+            if (action == "delete") await Api.DeleteAsync(id);
+            else if (action == "backup") await Api.BackupAsync(id);
+            else if (action.StartsWith("port:", StringComparison.Ordinal) &&
+                     int.TryParse(action[5..], out var port))
+                await Api.RemovePortAsync(id, port);
+            else await Api.LifecycleAsync(id, action);
+        }, "Action terminée. Vérifie l'état de ton projet.");
+    }
+
+    private Task AddProjectAsync() => WorkAsync(async () =>
+    {
+        await Api.CreateAsync(_newId.Trim(), _newPath.Trim(), _newName.Trim());
+        _newId = ""; _newName = ""; _newPath = "";
+    }, "Projet enregistré.");
+
+    private async Task OpenDetailsAsync(string id)
+    {
+        _selectedId = id;
+        await LoadDetailsAsync();
+    }
+
+    private async Task LoadDetailsAsync()
+    {
+        if (_selectedId is null) return;
+        _selectedProject = _projects.FirstOrDefault(x => x.Id == _selectedId);
+        await WorkAsync(async () =>
+        {
+            _agents = await Api.AgentsAsync(_selectedId);
+            _memory = await Api.MemoryAsync(_selectedId);
+            try { _logs = (await Api.LogsAsync(_selectedId))?.Text; }
+            catch { _logs = "Logs indisponibles : le workspace est peut-être arrêté."; }
+        }, "Informations chargées.");
+    }
+
+    private Task RefreshDiagnosticsAsync() => WorkAsync(async () =>
+    {
+        _diagnostics = await Api.DiagnosticsAsync();
+    }, "Diagnostics actualisés.");
+
+    private async Task LoadManualAsync(string topic)
+    {
+        try { _manual = await Api.ManualAsync(topic); }
+        catch { _manual = "Documentation indisponible. Consulte docs/INDEX.md dans le dépôt."; }
+    }
+
+    private void LoadEdit()
+    {
+        _selectedProject = _projects.FirstOrDefault(x => x.Id == _selectedId);
+        _editName = _selectedProject?.Name ?? "";
+        _editPath = _selectedProject?.HostPath ?? "";
+        _editOrchestrator = _selectedProject?.Orchestrator ?? "compose";
+    }
+
+    private Task LoadEditAsync()
+    {
+        LoadEdit();
+        return Task.CompletedTask;
+    }
+
+    private Task EditAsync() => WorkAsync(async () =>
+    {
+        if (_selectedId is null) return;
+        await Api.EditAsync(_selectedId, _editPath, _editName, _editOrchestrator);
+    }, "Configuration modifiée.");
+
+    private Task AddPortAsync() => WorkAsync(async () =>
+    {
+        if (_selectedId is null) return;
+        await Api.AddPortAsync(_selectedId, _newContainerPort, _newHostPort);
+    }, "Port ajouté. Relance le workspace pour appliquer les ports.");
+
+    public void Dispose() => _poller?.Dispose();
+}
