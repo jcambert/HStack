@@ -69,7 +69,8 @@ jobs:
       - run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
 
   publish-artifacts:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    # Validate deliverables on the PR candidate, then publish again on main.
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     needs:
       - linux-m8
       - windows-compile
@@ -107,6 +108,7 @@ jobs:
             tar -C "artifacts/${{ matrix.rid }}" -czf "dist/hstack-${{ matrix.rid }}.tar.gz" .
           fi
           (cd dist && sha256sum * > "hstack-${{ matrix.rid }}.sha256")
+          (cd dist && sha256sum -c "hstack-${{ matrix.rid }}.sha256")
       - name: Upload delivery artifact
         uses: actions/upload-artifact@v7
         with:
