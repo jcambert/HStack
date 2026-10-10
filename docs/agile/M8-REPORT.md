@@ -17,6 +17,24 @@
 5. Re-enable `tests/e2e/m8-smoke.sh` as a required CI gate and capture passing Linux M8 and Windows checks.
 6. Verify release artifacts and SHA-256 manifests for win-x64, linux-x64 and linux-arm64 before Aspire-enabled delivery.
 
+## Follow-up: generated AppHost certificate diagnostic (2026-10-10)
+
+Inspection of the source revealed a mismatch: the checked-in
+`src/HermesStack.AppHost/HermesStack.AppHost.csproj` suppresses the single
+experimental `ASPIRECERTIFICATES001` diagnostic, but the runtime project
+emitted by `AspireDeploymentPlanWriter` did not. It also treats warnings
+as errors, preventing generated AppHost compilation.
+
+A focused fix is proposed on a separate branch to add
+`<NoWarn>$(NoWarn);ASPIRECERTIFICATES001</NoWarn>` to the generated
+project, preserving `TreatWarningsAsErrors`. Unit regression coverage checks
+the generated project and the fail-closed read-only-root policy.
+
+**Evidence still required:** CI .NET build/unit results; generated AppHost
+compilation with the pinned Aspire SDK; real read-only workspace startup;
+OpenViking non-root mount validation; full agent image; M8 required CI smoke.
+This follow-up does **not** make the Aspire-enabled release ready.
+
 ## Decision
 
 Merge of M8 implementation is complete. **Aspire-enabled release remains blocked** until the above acceptance criteria are met. See `docs/release-readiness.md` for the delivery checklist.
