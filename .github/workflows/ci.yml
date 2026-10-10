@@ -107,7 +107,7 @@ jobs:
           -c Release
           -r ${{ matrix.rid }}
           --self-contained true
-          -p:PublishSingleFile=true
+          -p:PublishSingleFile=false
           -p:DebugType=None
           -p:DebugSymbols=false
           -o artifacts/${{ matrix.rid }}/web
@@ -115,9 +115,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f artifacts/${{ matrix.rid }}/web/wwwroot/index.html
+          # Host SPA entrypoint is deliberately separate from the Client's
+          # SDK-managed static assets (avoid duplicate index.html in builds).
+          test -f artifacts/${{ matrix.rid }}/web/spa/index.html
           test -f artifacts/${{ matrix.rid }}/web/wwwroot/_framework/blazor.webassembly.js
-          grep -q 'HermesStack' artifacts/${{ matrix.rid }}/web/wwwroot/index.html
+          test -f artifacts/${{ matrix.rid }}/web/manual/INDEX.md
+          test -f artifacts/${{ matrix.rid }}/assets/toolchain.lock.yaml
+          if [[ "${{ matrix.rid }}" == win-* ]]; then
+            test -f artifacts/${{ matrix.rid }}/web/hstack-web.exe
+            test -f artifacts/${{ matrix.rid }}/hstack.exe
+          else
+            test -x artifacts/${{ matrix.rid }}/web/hstack-web
+            test -x artifacts/${{ matrix.rid }}/hstack
+          fi
+          grep -q 'HermesStack' artifacts/${{ matrix.rid }}/web/spa/index.html
       - name: Package
         shell: bash
         run: |
