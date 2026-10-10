@@ -51,6 +51,18 @@
 - Main CI #139 (commit `cf6397a6543c7e74bb231ca085136425399a9d6e`) passed Linux M3–M8, Windows, and uploaded all three verified distribution artifacts.
 - Existing installations with root-owned historical OpenViking state may require a controlled ownership migration. Linux ARM64 is package-validated in CI, not native ARM64 runtime smoke-tested.
 
-## Later
+## Planned / Next priority — M10 Product UX, documentation & Web UI (EPIC-024)
 
-- Optional sandbox-provider spikes (M9) remain deferred until M8 release readiness is confirmed.
+- PBI-2401: une documentation utilisateur centrée sur les tâches réelles, avec prise en main Windows/Linux et parcours de développement guidé, tenue à jour avec la CLI.
+- PBI-2402: architecture UI locale .NET 10 : Blazor WebAssembly, MudBlazor, extension MudExtensions optionnelle, API ASP.NET Core réutilisant les services existants.
+- PBI-2403: sécurité locale du navigateur : loopback seul, session/permissions API, anti-CSRF et Origin, protections contre les sites tiers, aucune donnée sensible côté WASM.
+- PBI-2404: tableau de bord, gestion des projets et du cycle de vie Compose/Aspire, statuts, logs et diagnostics.
+- PBI-2405: flux guidés pour agents, authentification, sessions, mémoire, réseau/ports et sauvegardes sans contourner les protections existantes.
+- PBI-2406: compatibilité CLI, validation Windows/Linux, E2E navigateur, accessibilité, packaging et aide embarquée.
+
+**Statut : à concevoir / non implémenté.** Les éléments sont détaillés dans [EPIC-024](epics/EPIC-024.md) et [WEB-UI-PLAN](../product/WEB-UI-PLAN.md).
+
+## Later — M9 External Sandbox Providers (EPIC-023)
+
+- Optional Dagger Container Use / DevPod spikes restent différés : aucune dépendance de M10 envers leur intégration.
+
