@@ -1,6 +1,6 @@
 # Interface locale HermesStack (M10)
 
-> **Préversion M10 en validation :** ce guide décrit le nouvel exécutable du candidat PR M10. Il ne devient une fonctionnalité officiellement livrée qu'après CI et fusion dans `main`.
+> **M10 livré :** l'interface a été fusionnée par [PR #20](https://github.com/jcambert/HStack/pull/20) et validée par [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822). Installer une **nouvelle distribution complète** M10 : les anciens binaires ne contiennent pas l'UI.
 
 ## Pourquoi utiliser l'interface ?
 

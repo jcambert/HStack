@@ -1,10 +1,10 @@
 # HStack — Plan d’interface Web locale (M10)
 
-**Statut : architecture désormais implémentée dans le candidat M10 (validation CI en cours). Le développement M10 ne commence qu'après validation et clôture de M9 (EPIC-023).** La CLI existante est le produit fonctionnel. L’UI doit offrir des chemins de moindre friction, **sans créer un deuxième moteur de gestion**.
+**Statut : M10 terminé.** Implémentation fusionnée et [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822) verte. M9 est déjà terminé ; cette note conserve les décisions et limites de l'architecture. La CLI existante est le produit fonctionnel. L’UI doit offrir des chemins de moindre friction, **sans créer un deuxième moteur de gestion**.
 
 ## Ordre des jalons
 
-M9 est **terminé** par PR #19, CI candidate #147 et [CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826) vertes. Dagger/DevPod restent No-Go d'adoption (études documentaires sans PoC externe). Le candidat **M10** implémente les principaux parcours locaux, avant validation de la CI et de la distribution. Le présent document **préserve le plan M10 sans autoriser son implémentation anticipée**. Le guide utilisateur existant continue à être amélioré au fil des corrections. Voir [Roadmap](../agile/ROADMAP.md) et [EPIC-023](../agile/epics/EPIC-023.md).
+M9 est **terminé** par PR #19, CI candidate #147 et [CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826) vertes. Dagger/DevPod restent No-Go d'adoption (études documentaires sans PoC externe). M10 implémente les parcours locaux ; la [CI #159](https://github.com/jcambert/HStack/actions/runs/38084607822) valide le code fusionné. Ce document préserve les choix et fonctionnalités futures sans les présenter comme déjà livrés. Le guide utilisateur existant continue à être amélioré au fil des corrections. Voir [Roadmap](../agile/ROADMAP.md) et [EPIC-023](../agile/epics/EPIC-023.md).
 
 ## Parcours à simplifier
 
@@ -75,6 +75,8 @@ Sessions Herdr, workflows de développement guidés, mémoire, optimisations RTK
 
 Voir [EPIC-024](../agile/epics/EPIC-024.md), [Guide utilisateur](../INDEX.md) et [Démarrer un projet de développement](../guides/DEVELOPPER-AVEC-HSTACK.md).
 
-## Implémentation du candidat
+## Implémentation livrée
 
-Les trois projets `HermesStack.Web.Client`, `HermesStack.Web.Host` et `HermesStack.Web.Contracts` matérialisent le plan. Les actions sensibles (authentification agent en terminal, shell distant) **ne sont pas exposées au navigateur**. MudExtensions est volontairement non installé. Le test API M10 et le packaging sont des gates CI additionnels ; la documentation et le bilan final distingueront cette preuve de vrais tests navigateur Windows. Voir [Guide UI](WEB-UI-USER-GUIDE.md) et [ADR-024](../agile/adr/ADR-024.md).
+Les trois projets `HermesStack.Web.Client`, `HermesStack.Web.Host` et `HermesStack.Web.Contracts` matérialisent le plan. Les actions sensibles (authentification agent en terminal, shell distant) **ne sont pas exposées au navigateur**. MudExtensions est volontairement non installé. Les tests API M10, navigateur Chrome sur Linux et packaging sont des gates CI. Ils ne valent **pas** validation de navigateur natif Windows ni audit d'accessibilité exhaustif. Voir [Guide UI](WEB-UI-USER-GUIDE.md) et [ADR-024](../agile/adr/ADR-024.md).
+
+Voir également le [rapport de clôture M10](../agile/M10-REPORT.md).

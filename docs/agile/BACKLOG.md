@@ -63,13 +63,13 @@ L'ordre M8 → M9 → M10 est **obligatoire**. L'implémentation native M9 et la
 
 **Definition of Done M9 — satisfied (CI #147 candidate et CI #148 main) :** PBI-2301, 2302 et 2305 terminés, comparaisons PBI-2303 et 2304 documentées (Go/No-Go), revue de sécurité, tests réels Compose/Aspire/agent/OpenViking, CI Windows/Linux verte, roadmap/rapport de clôture mis à jour. Pas de nouvelle intégration externe obligatoire. Détails : [EPIC-023](epics/EPIC-023.md) et [PBI-2301](pbi/PBI-2301.md) à [PBI-2305](pbi/PBI-2305.md).
 
-## NEXT — M10 Product UX, documentation & Web UI (EPIC-024), not started
+## Done — M10 Product UX, documentation & Web UI (EPIC-024)
 
-- **PBI-2401** — Guide utilisateur et tutoriel : **premier brouillon publié**, validation utilisateur/CLI et aide UI encore à faire.
-- PBI-2402 — Blazor WebAssembly .NET 10 + MudBlazor, MudExtensions facultatif, hôte ASP.NET Core local.
-- PBI-2403 — Authentification/autorisation API locale, protections Origin/CSRF/Host et redaction des secrets.
-- PBI-2404 — Dashboard, projets, Compose/Aspire, agents, logs et diagnostic.
-- PBI-2405 — Parcours guidés : agents, sessions, mémoire, ports, sauvegardes.
-- PBI-2406 — E2E navigateur, accessibilité, packaging Windows/Linux, compatibilité CLI.
+- **PBI-2401 — Done** — Guide, tutoriel et aide Markdown embarquée dans l'UI ; validation manuelle sur PC Windows encore recommandée.
+- **PBI-2402 — Done** — Blazor WebAssembly .NET 10, MudBlazor 9.11.0, hôte ASP.NET Core local. MudExtensions non nécessaire, non installé.
+- **PBI-2403 — Done** — Session locale HttpOnly, HTTPS loopback, URL à usage unique, protections Origin/CSRF/Host, tests de refus et redaction.
+- **PBI-2404 — Done** — Dashboard, projets, Compose/Aspire, agents, journaux bornés et diagnostics.
+- **PBI-2405 — Done pour le périmètre local sûr** — Commandes guidées agents/Herdr, vue mémoire, ports et sauvegardes ; aucune authentification agent/console arbitraire dans le navigateur.
+- **PBI-2406 — Validé en CI** — E2E navigateur Chrome/Linux, API/security, tests Windows, packages win-x64/linux-x64/linux-arm64 et SHA-256. Audit WCAG manuel Windows à compléter hors certification CI.
 
-**Statut : UI non développée.** M9 est fusionné et sa CI main #148 est verte. M10 peut démarrer, mais son interface Blazor n'est pas encore implémentée. Détails : [EPIC-024](epics/EPIC-024.md) et [plan UI](../product/WEB-UI-PLAN.md).
+**Statut : M10 Done.** [PR #20](https://github.com/jcambert/HStack/pull/20), CI candidate #158 (5/5) et [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822) (5/5) sur `91f6f31c9da641ecb8cc5f9dac0ec7f5722a1bb9`. Limitations et preuves : [rapport M10](M10-REPORT.md). Détails : [EPIC-024](epics/EPIC-024.md) et [plan UI](../product/WEB-UI-PLAN.md).

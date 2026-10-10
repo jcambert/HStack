@@ -103,15 +103,15 @@ Pour les cas fréquents (Docker arrêté, permissions, Codex daemon, Aspire `HS2
 - [Gestion de la mémoire OpenViking](context/openviking-mapping.md) — configuration et cloisonnement.
 - [Préparation des livraisons](release-readiness.md) — limites testées, CI et plateformes.
 - [Roadmap V5](agile/ROADMAP.md) — jalons terminés et prévus.
-- [Projet M10 — interface Web locale](product/WEB-UI-PLAN.md) — proposition **non encore implémentée**.
+- [Interface Web locale M10](product/WEB-UI-USER-GUIDE.md) — guide utilisateur d'une fonctionnalité livrée.
 
 ## Une interface plus simple arrive dans la roadmap
 
-La **CLI fonctionne aujourd'hui**. **M9 est terminé** ([CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826)). L'interface **Blazor WebAssembly + MudBlazor** est le prochain jalon **M10**, encore non développée avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
+La **CLI fonctionne aujourd'hui**. **M9 est terminé** ([CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826)). L'interface **Blazor WebAssembly + MudBlazor** est le jalon **M10 terminé**, validé par [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822), avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
 
 **Pour découvrir les commandes exactes de ton binaire, `hstack.exe help` reste prioritaire**, car la version installée peut différer du code source sur `main`.
 
 
-## Nouvelle interface Web (M10 candidate)
+## Interface Web (M10 livré)
 
-Après installation de la distribution complète M10 validée, lance `hstack.exe ui` sous Windows ou `./hstack ui` sous Linux. Une URL locale et privée s'ouvre dans le navigateur avec projets, agents, diagnostics et tutoriels intégrés. La CLI et la sécurité existantes restent la source de vérité. [Guide de l'interface Web](product/WEB-UI-USER-GUIDE.md). Ce mode nécessite une version M10 validée : il **n'est pas disponible dans les anciens binaires**.
+Avec une distribution complète M10, lance `hstack.exe ui` sous Windows ou `./hstack ui` sous Linux. Une URL locale et privée s'ouvre dans le navigateur avec projets, agents, diagnostics et tutoriels intégrés. La CLI et la sécurité existantes restent la source de vérité. [Guide de l'interface Web](product/WEB-UI-USER-GUIDE.md). Ce mode nécessite une version M10 validée : il **n'est pas disponible dans les anciens binaires**.

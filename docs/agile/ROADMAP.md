@@ -9,11 +9,11 @@
 - **M7 Operations — Done**: EPIC-016..020; transactional managed updates, recovery/portability, operational observability, CLI operations and validated multi-platform distribution.
 - **M8 Aspire Experience — Done (CI/release workflow)**: EPIC-021 integrated by PR #12 and release gates closed by PR #15 (2026-10-10). Required real Aspire/OpenViking/security smoke plus Linux/Windows tests and win-x64/linux-x64/linux-arm64 SHA-256-verified artifacts passed on main CI #139 at `cf6397a6543c7e74bb231ca085136425399a9d6e`. See `docs/agile/M8-REPORT.md` and `docs/release-readiness.md`.
 - **M9 Optional Sandbox Providers — Done (2026-10-10; main CI #148)**: EPIC-023. Stabiliser l'abstraction des execution providers et le backend Docker natif, vérifier la parité de sécurité puis évaluer Dagger Container Use et DevPod par spikes. Une étude n'est pas une intégration obligatoire. Voir [EPIC-023](epics/EPIC-023.md).
-- **M10 Product UX & Local Web UI — Planned / NEXT**: EPIC-024. Interface locale Blazor WebAssembly (.NET 10) + MudBlazor, MudExtensions optionnel, API ASP.NET Core sécurisée et aide utilisateur. La **première version écrite** du guide utilisateur est déjà publiée; aucun développement Web UI n'a commencé. Voir [EPIC-024](epics/EPIC-024.md), [plan UI](../product/WEB-UI-PLAN.md) et [guide](../INDEX.md).
+- **M10 Product UX & Local Web UI — Done (2026-10-10; CI #159)**: EPIC-024. Blazor WebAssembly .NET 10 + MudBlazor 9.11.0; API ASP.NET Core locale sécurisée, commande `hstack ui`, projets/agents/diagnostics/logs/ports/sauvegardes et guide utilisateur intégré. MudExtensions reste optionnel, non requis. Voir [EPIC-024](epics/EPIC-024.md), [plan UI](../product/WEB-UI-PLAN.md) et [guide](../INDEX.md).
 
 ## Ordre impératif après M8 (décision 2026-10-10)
 
-**M8 terminé → M9 terminé (CI #148) → M10 à développer.**
+**M8 terminé → M9 terminé (CI #148) → M10 terminé (CI #159).**
 
 On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurité, documentation utilisateur et incidents de production peuvent toujours être prises en charge sans démarrer une fonctionnalité M10 avant la clôture de M9. L'UI est reportée après M9, pas annulée.
 
@@ -35,11 +35,13 @@ On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurit�
 - **M10.4 — Développement assisté** : onboarding, agents et sessions, mémoire, ports, sauvegardes.
 - **M10.5 — Tests/distribution** : E2E navigateur, accessibilité, builds et packaging, CI/régressions.
 
-**Gate M10 — SATISFAIT :** M9 fusionné et CI main #148 verte. L'UI M10 reste à développer. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.
+**Gate M10 — SATISFAIT :** M9 fusionné (CI #148), puis M10 fusionné via [PR #20](https://github.com/jcambert/HStack/pull/20) ; validation [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822) verte sur `91f6f31c9da641ecb8cc5f9dac0ec7f5722a1bb9`. L'UI est disponible dans les distributions M10. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.
 
 **Validation détaillée :** [Rapport M9](M9-REPORT.md) et [EPIC-023](epics/EPIC-023.md). Ne pas confondre recherche sans PoC externe et certification des sandbox tiers.
 
 
-## M10 — Interface Web locale (candidat en validation, 2026-10-10)
+## M10 — Interface Web locale (Done, 2026-10-10)
 
-EPIC-024 : implémentation candidate Blazor WASM/.NET 10, MudBlazor, host API HTTPS loopback à session éphémère, gestion des projets/ports/lifecycle, diagnostics, agents, sauvegardes et guide utilisateur intégré. **Ne pas déclarer M10 Done avant CI PR et CI main vertes**, tests E2E sécurité/API et vérification des trois distributions. MudExtensions reste optionnel et non installé ; pas de terminal Web ni d'authentification agent dans le navigateur. Voir [guide UI](../product/WEB-UI-USER-GUIDE.md) et [ADR-024](adr/ADR-024.md).
+EPIC-024 : implémentation livrée de Blazor WASM/.NET 10, MudBlazor et hôte ASP.NET Core HTTPS loopback avec session éphémère. Tableau de bord, gestion des projets/ports/lifecycle, diagnostics, agents, sauvegardes et manuel embarqué. Tests E2E sécurité/API et navigateur Chrome Linux, régressions Docker/Aspire, tests Windows et trois distributions validés en [CI candidate #158](https://github.com/jcambert/HStack/actions/runs/38084113404) et [CI main #159](https://github.com/jcambert/HStack/actions/runs/38084607822). MudExtensions reste optionnel et non installé ; pas de terminal Web ni d'authentification agent dans le navigateur. Voir [guide UI](../product/WEB-UI-USER-GUIDE.md) et [ADR-024](adr/ADR-024.md).
+
+**Bilan et limites :** [M10 report](M10-REPORT.md). L'interface d'authentification interactive des agents et le terminal Web sont volontairement absents ; ces tâches passent par la CLI. Le navigateur Windows réel et ARM64 natif ne sont pas couverts par la CI.

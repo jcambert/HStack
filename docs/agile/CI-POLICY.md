@@ -21,3 +21,7 @@ M8 reuses the fully pinned agent image built and verified earlier in the *same L
 - Merge only the exact tested head SHA; post-merge validation on `main` is part of Definition of Done.
 - Keep `workflow_dispatch` available for manual validation; Windows checks remain mandatory for normal PR/push workflows.
 - Never disable a required security or runtime test solely to obtain a green CI.
+
+### M10 UI security and delivery checks
+
+The required Linux job executes `tests/e2e/m10-web-smoke.sh` and `tests/e2e/m10-browser-smoke.sh` after unit/integration tests and before rebuilding the Docker agent image, so Web failures are detected early. They verify the one-time local HTTPS bootstrap, origin/host/CSRF and replay rejection, CLI/REST project-store parity and actual headless Chrome WASM rendering (not merely HTML download). Existing M3–M9 runtime Docker/Aspire/agent checks remain required. The three-RID publish job verifies executable Web host, packaged manual and WASM assets and SHA-256 manifests; it does **not** certify native Windows-browser/ARM64 execution.

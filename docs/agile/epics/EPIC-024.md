@@ -1,6 +1,6 @@
 # EPIC-024 — User Onboarding, Documentation & Secure Local Web UI
 
-**Milestone:** M10 — planned **AFTER M9**; **Priority:** next milestone (M9 gate satisfied by main CI #148); **Status:** Web UI not implemented. The initial written user guide is already available.
+**Milestone:** M10 — **DONE 2026-10-10**. **Status:** Blazor WASM UI and local host shipped by [PR #20](https://github.com/jcambert/HStack/pull/20), candidate CI #158 and [main CI #159](https://github.com/jcambert/HStack/actions/runs/38084607822) green.
 
 ## Why
 
@@ -60,7 +60,7 @@ E2E browser smoke, accessibility, Windows/Linux build and startup, REST contract
 
 ## Prerequisite milestone gate
 
-M9 EPIC-023 is merged and [main CI #148](https://github.com/jcambert/HStack/actions/runs/38076623826) is green; the prerequisite is now **satisfied**. M10 is next, but the host/WASM interface has **not** been built or released. The existing Markdown user guide remains available.
+M9 EPIC-023 is merged and [main CI #148](https://github.com/jcambert/HStack/actions/runs/38076623826) is green; the prerequisite is now **satisfied**. M10 host/WASM interface has been built and merged. Main [CI #159](https://github.com/jcambert/HStack/actions/runs/38084607822) is green on `91f6f31c9da641ecb8cc5f9dac0ec7f5722a1bb9`. Agent authentication and interactive sessions remain **terminal-guided** rather than browser-hosted, by security design. The existing Markdown user guide remains available.
 
 ## Not in scope (initial UI)
 
@@ -75,3 +75,10 @@ IDE clone, arbitrary remote shell, Docker daemon API from the browser, storing p
 - CodeBeam MudExtensions: https://github.com/CodeBeamOrg/CodeBeam.MudBlazor.Extensions
 
 **Definition of Done**: at least one tested "first code change" walkthrough, secure loopback UI that manages a project and shows problems without needing terminal memorization, matching CLI semantics, explicit API security test evidence, CI coverage and updated release guidance.
+
+## Delivery and evidence (2026-10-10)
+
+- `src/HermesStack.Web.Client` / `Web.Host` / `Web.Contracts`: local self-contained UI and typed API DTOs; `hstack ui` dispatch from the existing CLI.
+- Browser limited to HTTPS `127.0.0.1`; one-use bootstrap, HttpOnly/Secure/SameSite session and origin/CSRF/host checks. No arbitrary browser shell, Docker socket or browser-exposed agent credentials.
+- Real Chrome Linux WebAssembly-render smoke, API security/origin/replay tests and CLI project storage parity; Compose/Aspire/M3–M9 Docker regression; Windows build/unit; 3 checksum-verified release bundles in [CI #158](https://github.com/jcambert/HStack/actions/runs/38084113404) and [main CI #159](https://github.com/jcambert/HStack/actions/runs/38084607822).
+- Windows browser interactive test, native ARM64 runtime and independent WCAG audit are **not claimed**. See [M10 report](../M10-REPORT.md).
