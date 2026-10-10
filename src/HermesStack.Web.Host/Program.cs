@@ -17,6 +17,10 @@ if (portIndex >= 0)
 
 using var certificate = UiCertificate.Create();
 var builder = WebApplication.CreateBuilder(Array.Empty<string>());
+// dotnet run -c Release uses Production, which does not load referenced
+// Blazor Client static-web-asset manifests unless explicitly requested.
+// The published host serves the same built assets from its output directory.
+builder.WebHost.UseStaticWebAssets();
 builder.WebHost.ConfigureKestrel(options =>
 {
     // A browser on the same PC is the only supported client. Never use
