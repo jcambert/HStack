@@ -22,7 +22,8 @@ public sealed class WorkspaceOrchestratorRegistry(
 }
 
 public sealed class RoutedWorkspaceOrchestrator(
-    IWorkspaceOrchestratorRegistry registry) : IWorkspaceOrchestrator
+    IWorkspaceOrchestratorRegistry registry,
+    IExecutionEnvironmentProvider? executionProvider = null) : IWorkspaceOrchestrator
 {
     public string Id => "routed";
     public string DisplayName => "HermesStack orchestrator router";
@@ -45,25 +46,54 @@ public sealed class RoutedWorkspaceOrchestrator(
             Reason: string.Join("; ", results));
     }
 
-    public Task<WorkspaceDeploymentPreview> PreviewAsync(
+    public async Task<WorkspaceDeploymentPreview> PreviewAsync(
         WorkspaceDeploymentPlan plan,
-        CancellationToken cancellationToken = default) =>
-        Resolve(plan).PreviewAsync(plan, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (executionProvider is not null)
+        {
+            _ = await executionProvider.PlanAsync(plan, cancellationToken);
+        }
 
-    public Task UpAsync(
+        return await Resolve(plan).PreviewAsync(plan, cancellationToken);
+    }
+
+    public async Task UpAsync(
         WorkspaceDeploymentPlan plan,
-        CancellationToken cancellationToken = default) =>
-        Resolve(plan).UpAsync(plan, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (executionProvider is null)
+        {
+            await Resolve(plan).UpAsync(plan, cancellationToken);
+            return;
+        }
+
+        var executionPlan = await executionProvider.PlanAsync(plan, cancellationToken);
+        _ = await executionProvider.CreateAsync(executionPlan, cancellationToken);
+    }
 
     public Task DownAsync(
         WorkspaceDeploymentPlan plan,
         CancellationToken cancellationToken = default) =>
-        Resolve(plan).DownAsync(plan, cancellationToken);
+        executionProvider is null
+            ? Resolve(plan).DownAsync(plan, cancellationToken)
+            : executionProvider.DestroyAsync(
+                new ExecutionEnvironmentHandle(executionProvider.Id, plan),
+                cancellationToken);
 
-    public Task RestartAsync(
+    public async Task RestartAsync(
         WorkspaceDeploymentPlan plan,
-        CancellationToken cancellationToken = default) =>
-        Resolve(plan).RestartAsync(plan, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        if (executionProvider is not null)
+        {
+            _ = await executionProvider.PlanAsync(plan, cancellationToken);
+        }
+
+        // Keep the existing restart semantics, including Aspire's handling
+        // of stopped containers. Do not create a second resource owner.
+        await Resolve(plan).RestartAsync(plan, cancellationToken);
+    }
 
     public Task<WorkspaceStatus> GetStatusAsync(
         WorkspaceDeploymentPlan plan,

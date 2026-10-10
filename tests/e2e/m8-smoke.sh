@@ -81,6 +81,20 @@ docker exec "$workspace" test ! -S /var/run/docker.sock
 docker inspect --format '{{json .HostConfig.CapDrop}}' "$workspace" | jq -e 'index("ALL")' >/dev/null
 docker inspect --format '{{json .HostConfig.SecurityOpt}}' "$workspace" | jq -e 'any(.[]; startswith("no-new-privileges"))' >/dev/null
 test "$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$workspace")" != host
+
+echo '[M9] Native provider security parity: host namespaces and privileged mounts remain forbidden'
+test "$(docker inspect --format '{{.HostConfig.PidMode}}' "$workspace")" != host
+test "$(docker inspect --format '{{.HostConfig.IpcMode}}' "$workspace")" != host
+docker inspect "$workspace" | jq -e '
+  .[0].Mounts | all(.[];
+    (.Source != "/") and
+    (.Destination != "/") and
+    ((.Source | ascii_downcase | contains("docker.sock")) | not) and
+    ((.Destination | ascii_downcase | contains("docker.sock")) | not) and
+    ((.Source | ascii_downcase | contains("docker_engine")) | not)
+  )
+' >/dev/null
+
 docker inspect --format '{{json .HostConfig.PortBindings}}' "$workspace" |
   jq -e 'all(.[]?[]?; .HostIp == "127.0.0.1")' >/dev/null
 
