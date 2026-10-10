@@ -44,10 +44,12 @@
 - Validation completed on Linux and Windows with M3-M7 regression gates green.
 - Self-contained delivery artifacts published for win-x64, linux-x64 and linux-arm64 with SHA-256 manifests.
 
-## Runtime-validated — M8 Aspire Experience
+## Done — M8 Aspire Experience
 
-- EPIC-021 integrated in PR #12; runtime security, pinned Aspire CLI, full image, OpenViking and workspace workflows validated in PR #15 CI #136.
-- Required M8 Linux smoke and Windows build/unit passed; multi-RID delivery artifact and post-merge main checks are still release blockers.
+- EPIC-021 integrated by PR #12 and its Aspire release gates completed by PR #15.
+- CI #138 passed the entire release candidate on Linux/Windows with required M8 runtime smoke and three SHA-256-verified packages.
+- Main CI #139 (commit `cf6397a6543c7e74bb231ca085136425399a9d6e`) passed Linux M3–M8, Windows, and uploaded all three verified distribution artifacts.
+- Existing installations with root-owned historical OpenViking state may require a controlled ownership migration. Linux ARM64 is package-validated in CI, not native ARM64 runtime smoke-tested.
 
 ## Later
 
