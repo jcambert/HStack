@@ -49,4 +49,8 @@ The RTK upstream release can record command strings in its tracking database and
 
 The Aspire workspace must preserve all mandatory invariants above, including a read-only root filesystem, non-root execution, dropped capabilities, no privileged mode, no Docker socket, and loopback-only published ports. Do not weaken those controls to make Aspire's automatic certificate injection succeed. HStack-managed CA trust must remain additive; TLS verification must not be disabled.
 
-The M8 Aspire end-to-end smoke is temporarily not a required CI check. A green build does not demonstrate runtime security or startup readiness. Restore this gate and validate generated AppHost certificate behavior and OpenViking non-root bind-mount permissions before an Aspire-enabled release; see `docs/release-readiness.md`.
+The M8 Aspire end-to-end smoke is a **required Linux CI gate** and passed in the post-merge release workflow [CI #139](https://github.com/jcambert/HStack/actions/runs/38048112197), covering runtime isolation and OpenViking non-root bind-mounted secret access. This validates the tested Linux x64 CI path, not every host/architecture. See `docs/release-readiness.md` for evidence and remaining host-specific limitations.
+
+## Planned M10 browser/API security boundary
+
+M10 proposes Blazor WebAssembly and MudBlazor served locally by a dedicated ASP.NET Core API host. Browser/WASM code has **no authority to operate Docker**: it cannot receive API tokens, credential stores, Docker socket access, arbitrary command execution, or raw privileged operations. The host must validate session, origin and CSRF for mutations; block DNS rebinding and requests from malicious websites; scope operations by project; preserve existing sandbox invariants; and audit/redact sensitive actions. This is planned work, **not a current deployed endpoint**. See `docs/product/WEB-UI-PLAN.md`.

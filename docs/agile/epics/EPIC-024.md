@@ -36,7 +36,7 @@ The current command-line control plane is capable but its daily developer workfl
 
 ### PBI-2401 — User guide, hands-on tutorials and help navigation
 
-Delivered as an initial written draft in this documentation PR; check examples against the current CLI. Include installation, 10-minute first project, developing with Claude/Codex/Hermes/OpenCode, Herdr, Compose/Aspire, network ports, token/memory, backup, security limitations and errors. Keep one single canonical entry point (`docs/INDEX.md`).
+Delivered as an initial written draft in this documentation PR; check examples against the current CLI. Include installation, 10-minute first project, developing with Claude/Codex/Hermes/OpenCode, Herdr, Compose/Aspire, network ports, token/memory, backup, security limitations, and real error cases: Aspire HS2110 version mismatch and Codex daemon `Permission denied (os error 13)` with the `-- --no-daemon` workaround. Keep one single canonical entry point (`docs/INDEX.md`).
 
 ### PBI-2402 — API & WASM architecture spike
 

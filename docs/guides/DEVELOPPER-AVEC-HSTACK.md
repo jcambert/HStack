@@ -179,6 +179,7 @@ hstack.exe down maboutique
 | --- | --- |
 | `docker` ne répond pas | Démarrer Docker Desktop ; réessayer `docker version` |
 | `HS2110` Aspire version incorrecte | `aspire --version`, `Get-Command aspire -All` ; aligner la version CLI sur `13.6.0` |
+| Codex : `Permission denied (os error 13)`, puis demande `--no-daemon` | Contournement : `hstack.exe codex maboutique -- --no-daemon`. L'option après `--` va à **Codex**, pas à HStack ; le problème concerne son serveur de fond. Si cela échoue aussi : `hstack.exe shell maboutique`, `codex --version`, `id`, `echo "$CODEX_HOME"`, `ls -ld "$CODEX_HOME" "$HOME/.codex"`. Ne pas utiliser `chmod -R 777`, lancer root, supprimer des jetons ou utiliser Docker Debug pour contourner l'isolation. Voir les [signalements Codex](https://github.com/openai/codex/issues/48999). |
 | `project add` échoue | Vérifier que le dossier **existe** et que son chemin est autorisé ; `hstack.exe config validate` |
 | `up` échoue | `hstack.exe doctor maboutique` et `hstack.exe logs maboutique --tail 100 --no-follow` |
 | Un agent n’est pas connecté | `hstack.exe agent status --project maboutique` puis `hstack.exe auth <agent> --project maboutique` |

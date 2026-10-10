@@ -1,129 +1,112 @@
-# HermesStack — Guide d'utilisation
+# HermesStack — Guide utilisateur
 
-HermesStack (`hstack`) pilote des espaces de travail isolés pour des agents de développement. Cette page est le **point de départ pour utiliser le produit**, pas un journal de projet. Pour l'avancement technique, voir la [roadmap](agile/ROADMAP.md).
+> **Commence ici.** Ce guide est destiné aux personnes qui veulent utiliser HermesStack pour **développer un logiciel**, seules ou avec des agents IA. Le [suivi des jalons](agile/ROADMAP.md) est séparé du manuel d'utilisation.
 
-> **État actuel :** les parcours Docker Compose et les fonctions M1–M7 sont documentés. Le parcours Aspire (M8) est intégré mais **pas encore validé pour une livraison**. Voir les [limitations et critères de release](release-readiness.md).
+## Qu'est-ce que HermesStack ?
 
-## 1. Avant de commencer
+HermesStack, lancé par la commande `hstack` (ou `hstack.exe` sur Windows), est un **gestionnaire local d'environnements de développement isolés**. Tu lui indiques le dossier d'un projet sur ton ordinateur. Il prépare un environnement Docker pour ce projet, avec plusieurs agents de codage possibles (Claude Code, Codex, Hermes, OpenCode), des sessions Herdr, des diagnostics et des outils optionnels de mémoire OpenViking et d'optimisation de tokens.
 
-- Installer Docker et disposer d'un moteur Docker accessible ; le parcours par défaut utilise Docker Compose.
-- Utiliser une distribution `hstack` adaptée à votre système (Windows x64, Linux x64 ou Linux ARM64). Les artefacts sont produits par la CI de `main` ; leur publication ne constitue pas à elle seule une release Aspire validée.
-- Préparer un répertoire local contenant le code de votre projet. HStack ne doit pas avoir besoin de monter votre dossier personnel ou les identifiants de votre hôte.
+**Il ne remplace pas ton éditeur, Git ni un agent IA** : il orchestre ces outils et isole leurs états et leurs accès. Pour un premier essai, **Docker Compose** suffit. Aspire est une alternative avancée dont la version de CLI doit correspondre à la version épinglée par HStack.
 
-Pour découvrir les commandes de la version installée :
+### À quoi ça sert ?
 
-```bash
-hstack --version
-hstack help
-hstack
-```
+- Développer sur un dossier de code existant sans installer chaque agent directement sur le poste.
+- Lancer, inspecter, arrêter et reprendre un workspace propre au projet.
+- Passer d'un agent IA à un autre sans mélanger leurs authentifications et leurs états entre projets.
+- Gérer les sessions, diagnostiquer les pannes et publier localement le port d'une application en développement.
+- Ajouter, si nécessaire, la mémoire OpenViking, l'optimisation des tokens RTK et des sauvegardes.
 
-Sans argument, `hstack` affiche un tableau de bord et, dans un terminal interactif, un menu (projets, agents, sessions, mises à jour, diagnostic, sécurité, certificats et paramètres).
+**Limite de sécurité :** un conteneur réduit l'impact d'un agent, mais n'est pas une machine virtuelle ni une garantie absolue contre du code malveillant. Le dossier du projet est monté en écriture et ses fichiers peuvent être modifiés. Toujours sauvegarder/committer les changements importants et revoir les commandes proposées par l'agent.
 
-## 2. Démarrage rapide : un projet
+## Démarrage guidé : les premières commandes
 
-Exemple Windows, à adapter à votre chemin :
+Prérequis : Docker Desktop actif sur Windows (ou Docker + Compose sur Linux), le binaire HStack correspondant à ton système, et **un dossier de projet existant**. Depuis PowerShell sur Windows :
 
 ```powershell
-hstack init
-hstack project add mascara C:\Dev\Mascara
-hstack project list
-hstack up mascara
-hstack status mascara
-hstack shell mascara
+docker version
+hstack.exe help
+hstack.exe init --orchestrator compose
+hstack.exe project add monprojet "C:\Dev\MonProjet"
+hstack.exe up monprojet
+hstack.exe status monprojet
+hstack.exe agent status --project monprojet
 ```
 
-`init` initialise l'environnement et prépare les images lorsque Docker est disponible. `project add` enregistre un répertoire existant ; `up` démarre l'espace de travail du projet. `shell` ouvre un shell dans cet espace.
+Adapte le chemin `C:\Dev\MonProjet` à un dossier **déjà présent sur ton PC**. `init` prépare les images ; le premier démarrage peut nécessiter un accès réseau pour récupérer les outils épinglés.
 
-### Cycle de vie quotidien
+Ensuite, pour discuter avec **Codex** dans ce projet :
 
-```bash
-hstack status mascara --json
-hstack logs mascara
-hstack restart mascara
-hstack down mascara
+```powershell
+hstack.exe auth codex --project monprojet
+hstack.exe codex monprojet
 ```
 
-Utilisez `status --json` pour les scripts, `logs` pour les problèmes d'exécution, `restart` pour redémarrer et `down` pour arrêter le conteneur. Les données durables propres au projet restent séparées des autres projets.
+L'authentification dépend de chaque fournisseur. Pour Claude, remplace `codex` par `claude`. **Si Codex indique `Permission denied (os error 13)` suivi de `--no-daemon`, lance `hstack.exe codex monprojet -- --no-daemon`**. C'est un contournement propre au serveur d'arrière-plan de Codex ; voir le [dépannage détaillé](guides/DEVELOPPER-AVEC-HSTACK.md#11-dépannage-par-symptôme).
 
-## 3. Travailler avec les agents et les sessions
+## Pour apprendre réellement à développer avec HStack
 
-```bash
-hstack agent list
-hstack agent status --project mascara
-hstack herdr mascara
-```
+**➡ [Tutoriel complet : développer avec HermesStack](guides/DEVELOPPER-AVEC-HSTACK.md)**
 
-HermesStack intègre les agents Claude, Codex, Hermes et OpenCode ; les commandes `hstack claude`, `hstack codex`, `hstack hermes` et `hstack opencode` sont disponibles comme points d'entrée. Les commandes `agent`, `auth`, `session`, `herdr` et `tmux` couvrent la gestion des agents, de leur authentification et des sessions. Consultez `hstack help` et l'aide des sous-commandes de votre binaire avant de lancer des opérations sensibles.
+Il suit le fil concret : préparer un projet, lancer les agents, demander une modification de code, revoir les fichiers, tester le résultat, utiliser Herdr, consulter les logs et fermer proprement le workspace.
 
-Les identités, l'état des agents et les sessions Herdr sont isolés par projet ; n'utilisez pas directement les identifiants de l'hôte comme solution de contournement.
+## Manuel de référence par besoin
 
-## 4. Réseau, sécurité et diagnostic
-
-```bash
-hstack doctor mascara
-hstack security inspect mascara
-hstack port add mascara 5000
-hstack proxy show
-hstack cert add entreprise.pem
-```
-
-- `doctor` : vérifie la configuration et les dépendances de l'espace de travail.
-- `security inspect` : inspecte les protections configurées.
-- `port add` : expose un port local ; les publications sont limitées à `127.0.0.1` par défaut.
-- `proxy` et `cert` : configurent l'accès réseau d'entreprise et la confiance dans une autorité de certification additionnelle.
-
-Les secrets sont protégés et ne doivent pas être placés dans les fichiers YAML ou dans les variables Compose en clair. Voir [Sécurité](security.md).
-
-## 5. Optimisation des tokens et contexte partagé
-
-HStack propose RTK comme optimiseur par défaut des profils sûrs/équilibrés, avec Caveman disponible sur activation explicite dans les profils appropriés. Le cumul potentiellement destructeur nécessite un consentement explicite.
-
-Les points d'entrée `hstack token`, `hstack memory` et `hstack context` permettent de gérer l'optimisation, la mémoire OpenViking et les règles de partage de contexte. Les permissions de partage sont spécifiques au projet et doivent rester explicites. Pour le fonctionnement et les limites, consulter [Architecture](architecture.md) et [Sécurité](security.md).
-
-## 6. Sauvegarder, migrer et mettre à jour
-
-```bash
-hstack backup mascara
-hstack export environnement.hstack --include-memory
-hstack update check
-hstack update plan
-```
-
-- `backup` sauvegarde la configuration et l'état opérationnel, sans recopier le code source du projet.
-- `export` crée un paquet portable ; la mémoire n'est incluse que si `--include-memory` est indiqué.
-- Les secrets ne sont exportés que sur demande explicite avec `--include-secrets --passphrase-env <ENV>`, dans un paquet chiffré.
-- `update check` et `update plan` inspectent une mise à jour gérée. `hstack update apply --yes` applique le plan avec validation et tentative de retour arrière en cas d'échec.
-
-Avant toute mise à jour importante, conserver une sauvegarde vérifiée.
-
-## 7. Dépannage rapide
-
-| Symptôme | Première vérification |
+| Je veux… | Commande ou ressource |
 | --- | --- |
-| Docker indisponible | Vérifier que Docker fonctionne, puis relancer `hstack doctor mascara` |
-| Projet non démarré | `hstack status mascara`, puis `hstack logs mascara` |
-| Problème d'agent | `hstack agent status --project mascara` |
-| Port inaccessible | Vérifier `hstack port add` et la liaison locale `127.0.0.1` |
-| Proxy ou certificat d'entreprise | `hstack proxy show`, `hstack cert add` et `hstack doctor mascara` |
-| Problème Aspire | `hstack doctor --aspire` ; consulter les [limitations M8](agile/M8-REPORT.md) |
+| Vérifier l'installation | `hstack.exe help`, `hstack.exe doctor` |
+| Voir les projets | `hstack.exe project list` |
+| Démarrer / arrêter | `hstack.exe up monprojet` / `hstack.exe down monprojet` |
+| Voir l'état et le diagnostic | `hstack.exe status monprojet`, `hstack.exe doctor monprojet` |
+| Ouvrir un terminal de développement | `hstack.exe shell monprojet` |
+| Lancer Codex / Claude / Hermes / OpenCode | `hstack.exe codex monprojet`, `hstack.exe claude monprojet`, etc. |
+| Vérifier les agents | `hstack.exe agent status --project monprojet` |
+| Lancer / consulter Herdr | `hstack.exe session init monprojet`, `hstack.exe herdr monprojet` |
+| Lire les logs | `hstack.exe logs monprojet --tail 100 --no-follow` |
+| Rendre un site de développement accessible localement | `hstack.exe port add monprojet 3000` |
+| Voir/activer la mémoire | `hstack.exe memory status monprojet`, `hstack.exe memory enable monprojet` |
+| Vérifier l'optimisation de tokens | `hstack.exe token status monprojet` |
+| Sauvegarder un projet | `hstack.exe backup monprojet` |
+| Voir les versions / orchestrateurs | `hstack.exe orchestrator list`, `hstack.exe doctor --aspire` |
+| Préparer une mise à jour | `hstack.exe update check`, `hstack.exe update plan` |
 
-Les événements applicatifs sont consignés dans `.hstack/logs/hstack.log` avec masquage des secrets. Les logs du conteneur sont consultables via `hstack logs <projet>`.
+Les commandes avec un nom de projet doivent utiliser ton identifiant enregistré, pas nécessairement `monprojet`.
 
-## 8. Aspire : fonctionnalité en validation
+## Quand choisir Aspire ?
 
-Le code M8 permet la sélection d'un orchestrateur Aspire (notamment via `hstack init --orchestrator aspire`), mais **ne constitue pas encore un parcours recommandé pour une livraison**. Le démarrage complet n'est pas couvert par la CI obligatoire. Le projet Aspire généré, l'injection de certificats et les permissions OpenViking doivent encore être validés sans réduire les protections des conteneurs.
+**Ne commence pas par Aspire si tu découvres HStack.** Compose est le backend par défaut. Aspire n'est pas un agent de codage, c'est une autre façon d'organiser les conteneurs. Il requiert le **CLI Aspire 13.6.0** prévu par `toolchain.lock.yaml`, .NET SDK 10 et Docker accessibles.
 
-Voir le [rapport M8](agile/M8-REPORT.md) et la [checklist de release](release-readiness.md).
+```powershell
+aspire --version
+hstack.exe doctor --aspire
+hstack.exe init --orchestrator aspire
+```
 
-## 9. Références et suivi du projet
+En cas d'erreur `HS2110` (par exemple Aspire 13.4.6 détecté), compare la version attendue, lance `Get-Command aspire -All` puis mets à jour **l'installation Aspire effectivement exécutée**. Ne remplace pas simplement la version attendue dans HStack. La validation de M8 a été effectuée en CI Linux et Windows, mais le démarrage graphique sur chaque PC utilisateur reste dépendant de son environnement Docker et des permissions locales.
 
-- [Architecture et composants](architecture.md)
-- [Sécurité et limites d'isolation](security.md)
-- [Roadmap et avancement des jalons](agile/ROADMAP.md)
-- [Rapport M7](agile/M7-REPORT.md)
-- [Rapport M8](agile/M8-REPORT.md)
-- [Préparation des releases](release-readiness.md)
-- [README du dépôt](../README.md)
+## Quand cela ne fonctionne pas
 
-**Maintenance :** conserver ici les parcours utilisateur, les exemples et les limites connues ; consigner les dates, PR, résultats CI et décisions de livraison dans la roadmap et les rapports. Toute nouvelle fonctionnalité livrée doit être accompagnée d'un exemple d'utilisation et d'une mise à jour de ce guide.
+Commence par ces trois commandes :
+
+```powershell
+hstack.exe doctor monprojet
+hstack.exe status monprojet
+hstack.exe logs monprojet --tail 100 --no-follow
+```
+
+Pour les cas fréquents (Docker arrêté, permissions, Codex daemon, Aspire `HS2110`, serveur Web inaccessible, mémoire), voir la [section dépannage](guides/DEVELOPPER-AVEC-HSTACK.md#11-dépannage-par-symptôme). **Ne lance pas les agents ou Docker en administrateur pour cacher une erreur de permissions.** Ne supprime pas les répertoires de jetons, caches ou secrets sans sauvegarde et diagnostic.
+
+## Documentation existante et approfondissement
+
+- [Tutoriel complet de développement](guides/DEVELOPPER-AVEC-HSTACK.md) — ce qu'il faut faire au quotidien.
+- [Sécurité](security.md) et [modèle de menaces](security/threat-model.md) — quelles protections et quelles limites.
+- [Architecture](architecture.md) — composants et flux du système.
+- [Gestion de la mémoire OpenViking](context/openviking-mapping.md) — configuration et cloisonnement.
+- [Préparation des livraisons](release-readiness.md) — limites testées, CI et plateformes.
+- [Roadmap V5](agile/ROADMAP.md) — jalons terminés et prévus.
+- [Projet M10 — interface Web locale](product/WEB-UI-PLAN.md) — proposition **non encore implémentée**.
+
+## Une interface plus simple arrive dans la roadmap
+
+La **CLI fonctionne aujourd'hui**. L'interface **Blazor WebAssembly + MudBlazor** est prévue dans **M10** avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
+
+**Pour découvrir les commandes exactes de ton binaire, `hstack.exe help` reste prioritaire**, car la version installée peut différer du code source sur `main`.
