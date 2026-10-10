@@ -43,7 +43,9 @@ Project ports bind to `127.0.0.1` by default. Corporate CA trust remains additiv
 
 Application events are written under `.hstack/logs/hstack.log` with secret redaction. Workspace logs are available through `hstack logs <project>`.
 
-Start with the [HStack user guide](docs/INDEX.md) for setup, project workflows, agents, diagnostics, backup, updates and known limitations. The [roadmap](docs/agile/ROADMAP.md) tracks milestone progress.
+**New to HermesStack?** Start with the [French user wiki / manual](docs/INDEX.md) and the [hands-on developer tutorial](docs/guides/DEVELOPPER-AVEC-HSTACK.md) — register a source directory, run a coding agent, inspect changes, and troubleshoot common errors. The [roadmap](docs/agile/ROADMAP.md) tracks delivered and upcoming milestones.
+
+**Next product priority (M10)**: task-oriented documentation and a **secure localhost Web UI** using .NET 10 Blazor WebAssembly + MudBlazor, with MudExtensions optional. This UI is **planned, not yet shipped**. See [EPIC-024](docs/agile/epics/EPIC-024.md) and [UI architecture/roadmap](docs/product/WEB-UI-PLAN.md).
 
 ## Development workflow
 
