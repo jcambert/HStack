@@ -88,6 +88,10 @@ public sealed class AspireDeploymentPlanWriter(
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
                 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                <!-- Only this experimental Aspire API diagnostic is allowed: the linked
+                     AppHost opts out of Aspire-managed HTTPS certificate injection
+                     for a read-only workspace; HStack keeps its own CA/TLS policy. -->
+                <NoWarn>$(NoWarn);ASPIRECERTIFICATES001</NoWarn>
                 <AspireUseCliBundle>true</AspireUseCliBundle>
                 <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
               </PropertyGroup>
