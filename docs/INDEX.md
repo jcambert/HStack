@@ -110,3 +110,8 @@ Pour les cas fréquents (Docker arrêté, permissions, Codex daemon, Aspire `HS2
 La **CLI fonctionne aujourd'hui**. **M9 est terminé** ([CI main #148](https://github.com/jcambert/HStack/actions/runs/38076623826)). L'interface **Blazor WebAssembly + MudBlazor** est le prochain jalon **M10**, encore non développée avec un hôte API sécurisé, pages projets, agents, logs, diagnostics et tutoriels interactifs. **MudExtensions est une option**, pas encore intégrée. Le navigateur ne doit jamais disposer directement des secrets ou du socket Docker. Cette future UI réutilisera la même logique métier, sans enlever les commandes utiles pour les scripts.
 
 **Pour découvrir les commandes exactes de ton binaire, `hstack.exe help` reste prioritaire**, car la version installée peut différer du code source sur `main`.
+
+
+## Nouvelle interface Web (M10 candidate)
+
+Après installation de la distribution complète M10 validée, lance `hstack.exe ui` sous Windows ou `./hstack ui` sous Linux. Une URL locale et privée s'ouvre dans le navigateur avec projets, agents, diagnostics et tutoriels intégrés. La CLI et la sécurité existantes restent la source de vérité. [Guide de l'interface Web](product/WEB-UI-USER-GUIDE.md). Ce mode nécessite une version M10 validée : il **n'est pas disponible dans les anciens binaires**.

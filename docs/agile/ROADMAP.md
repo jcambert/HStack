@@ -38,3 +38,8 @@ On ne saute pas un jalon pour commencer le suivant. Les corrections de sécurit�
 **Gate M10 — SATISFAIT :** M9 fusionné et CI main #148 verte. L'UI M10 reste à développer. Préserver tous les invariants de sécurité et la CLI comme interface de référence. Ne pas annoncer M10 comme terminé sur la seule présence d'un guide.
 
 **Validation détaillée :** [Rapport M9](M9-REPORT.md) et [EPIC-023](epics/EPIC-023.md). Ne pas confondre recherche sans PoC externe et certification des sandbox tiers.
+
+
+## M10 — Interface Web locale (candidat en validation, 2026-10-10)
+
+EPIC-024 : implémentation candidate Blazor WASM/.NET 10, MudBlazor, host API HTTPS loopback à session éphémère, gestion des projets/ports/lifecycle, diagnostics, agents, sauvegardes et guide utilisateur intégré. **Ne pas déclarer M10 Done avant CI PR et CI main vertes**, tests E2E sécurité/API et vérification des trois distributions. MudExtensions reste optionnel et non installé ; pas de terminal Web ni d'authentification agent dans le navigateur. Voir [guide UI](../product/WEB-UI-USER-GUIDE.md) et [ADR-024](adr/ADR-024.md).

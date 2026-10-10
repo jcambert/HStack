@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudLayout>
+    <MudAppBar Elevation="0" Color="Color.Primary">
+        <MudText Typo="Typo.h6" Class="font-weight-bold">◈ HermesStack</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.caption">LOCAL · AGENTS · WORKSPACES</MudText>
+    </MudAppBar>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>

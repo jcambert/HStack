@@ -1,0 +1,16 @@
+:root { color-scheme: light; --hstack-ink:#213147; --hstack-accent:#3566b8; }
+html, body { margin: 0; min-height: 100%; font-family: system-ui, sans-serif; background: #f4f6fa; }
+.boot { padding: 15vh 20px; text-align: center; font-size: 1.1rem; color: #43536b; }
+.hstack-heading { padding: 18px 0 8px; }
+.hstack-subtitle { color: #67788e; }
+.hstack-card { border: 1px solid #dfe6f2; border-radius: 14px; }
+.hstack-meta { color: #60728c; font-size: 0.88rem; }
+.hstack-manual { font-family: ui-monospace,SFMono-Regular,Consolas,monospace; font-size: 0.84rem;
+  white-space: pre-wrap; overflow-wrap: anywhere; max-height: 60vh; overflow-y: auto;
+  border-radius: 12px; padding: 16px; background: #172335; color: #e7edf8; }
+.hstack-status { font-weight: 700; letter-spacing: .02em; }
+.hstack-status.running { color: #16794d; }
+.hstack-status.stopped { color: #946200; }
+.hstack-actions { gap: 6px; flex-wrap: wrap; }
+.hstack-muted { color: #61738f; }
+.hstack-panel { padding: 20px; margin: 12px 0; }
