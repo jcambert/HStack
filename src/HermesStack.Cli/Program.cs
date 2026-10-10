@@ -535,6 +535,40 @@ internal static class HStackCli
         var baseTag = $"hstack/workspace-base:{toolchain.WorkspaceVersion}";
         var fullTag = $"hstack/workspace-full:{toolchain.WorkspaceVersion}";
 
+        // M3 CI has already built and exercised the complete pinned agent image.
+        // M8 reuses exactly that image instead of replacing its tag with the base
+        // image or rebuilding upstream downloads after a transient rate limit.
+        if (args.Contains("--ci-reuse-verified-full-image", StringComparer.Ordinal))
+        {
+            if (!string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("--ci-reuse-verified-full-image is restricted to CI.");
+            }
+
+            var inspection = await processRunner.RunAsync(new(
+                "docker", ["image", "inspect", fullTag, "--format", "{{json .Config.Labels}}"],
+                ThrowOnError: true));
+            using var labels = JsonDocument.Parse(inspection.StandardOutput);
+            var root = labels.RootElement;
+            bool Matches(string key, string expected) =>
+                root.TryGetProperty(key, out var property) &&
+                string.Equals(property.GetString(), expected, StringComparison.Ordinal);
+
+            if (!Matches("io.hstack.kind", "workspace-full") ||
+                !Matches("io.hstack.toolchain.sha256", toolchainHash) ||
+                !Matches("io.hstack.agent.claude", toolchain.ClaudeCodeVersion) ||
+                !Matches("io.hstack.agent.codex", toolchain.CodexVersion) ||
+                !Matches("io.hstack.agent.hermes", toolchain.HermesVersion) ||
+                !Matches("io.hstack.agent.opencode", toolchain.OpenCodeVersion))
+            {
+                throw new InvalidOperationException(
+                    "M8 CI requires the complete, toolchain-verified image already built and tested by the M3 gate.");
+            }
+
+            AnsiConsole.MarkupLine("[green]✓[/] Reusing CI-validated full agent image (no base-image substitution).");
+            return 0;
+        }
+
         await BuildImageAsync(
             processRunner,
             workspaceDir,
