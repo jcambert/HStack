@@ -2,7 +2,7 @@
 
 HermesStack is a local secure control plane for AI-agent development workspaces.
 
-**M7 Operations is complete on the current release branch.** HermesStack keeps the secure isolated M1-M6 runtime and adds managed updates, recovery/portability, operational observability, automation-friendly CLI flows and multi-platform delivery.
+**M1–M8 are complete against the current CI and distribution gates.** HermesStack provides secure isolated AI workspaces with four pinned agents, memory, managed updates, recovery, observability, and optional Aspire orchestration.
 
 ```text
 hstack init
@@ -47,10 +47,10 @@ Start with the [HStack user guide](docs/INDEX.md) for setup, project workflows, 
 
 ## Development workflow
 
-Every pull request runs Linux and Windows build/unit validation. Linux also runs integration tests and M3-M7 regression gates. A successful push to `main` publishes self-contained `win-x64`, `linux-x64` and `linux-arm64` delivery artifacts with SHA-256 manifests.
+Every pull request runs Linux and Windows build/unit validation. Linux also runs integration tests and required M3–M8 regression/runtime gates. A successful push to `main` publishes self-contained `win-x64`, `linux-x64` and `linux-arm64` delivery artifacts with SHA-256 manifests.
 
-## M8 Aspire Experience — runtime-validated, delivery verification pending
+## M8 Aspire Experience — complete (CI validation)
 
-The M8 Aspire orchestration backend is integrated and **the end-to-end runtime gate has passed** on PR #15 ([CI #136](https://github.com/jcambert/HStack/actions/runs/38047248670)). The Linux gate runs with Aspire CLI 13.6.0, the complete pinned agent image, real read-only/non-root Docker workspace, and non-root OpenViking with private credentials. Windows build and unit tests also pass. Docker Compose remains a first-class backend.
+M8 was integrated through PR #12 and closed by PR #15. The pinned Aspire CLI 13.6.0 starts the real secure non-root/read-only workspace with the full agent image and OpenViking, while Docker Compose remains supported. All required M3–M8 Linux gates and Windows compilation/unit tests passed on the **merged main commit** `cf6397a6543c7e74bb231ca085136425399a9d6e`; [CI #139](https://github.com/jcambert/HStack/actions/runs/38048112197) also published the `win-x64`, `linux-x64`, and `linux-arm64` packages with SHA-256 verification.
 
-Multi-platform release candidate packaging, SHA-256 verification and the post-merge main run are the remaining delivery gates. See the [M8 report](docs/agile/M8-REPORT.md) and [release-readiness checklist](docs/release-readiness.md) before declaring a new Aspire-enabled release.
+This certifies the supported GitHub Actions CI/release workflow; it is not a claim of exhaustive testing on every target device. Existing OpenViking installs with root-owned bind-mounted state require a backed-up, controlled ownership migration before non-root startup. See the [M8 report](docs/agile/M8-REPORT.md) and [release readiness](docs/release-readiness.md).

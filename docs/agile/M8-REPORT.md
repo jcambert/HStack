@@ -1,31 +1,32 @@
-# M8 Aspire Experience — validation report
+# M8 Aspire Experience — completion report
 
-**Status (2026-10-10): runtime-validated on PR #15; release-artifact and post-merge validation pending.**
+**Status (2026-10-10): DONE — PR #15 merged and complete post-merge release workflow validated.**
 
-## Integration and runtime evidence
+## Traceability
 
-- PR #12 integrated EPIC-021 on main (2026-10-09).
-- PR #15 fixes the generated AppHost project: the single experimental `ASPIRECERTIFICATES001` diagnostic is allowed without disabling `TreatWarningsAsErrors`.
-- [CI #136](https://github.com/jcambert/HStack/actions/runs/38047248670) succeeded (Linux + Windows) for the PR candidate:
-  - .NET builds, unit and integration tests, and M3–M7 regression gates;
-  - pinned Aspire CLI 13.6.0 and the **required** `tests/e2e/m8-smoke.sh` gate;
-  - actual Aspire AppHost compilation, workspace startup, dashboard/status, and orchestrator switching;
-  - Docker inspection: non-root workspace, read-only root, all capabilities dropped, no privileges, no Docker socket, and loopback-only publishing;
-  - OpenViking startup under the host owner's numeric non-root Linux identity, 0600 private config/secret files, and health diagnostics;
-  - the *real full agent image*, built and exercised by M3 on the same Linux runner, re-used by M8 only after label/version/hash verification. No base-image substitution.
-- Windows build and unit tests also succeeded in CI #136.
+- Original Aspire integration: PR #12.
+- M8 release completion: [PR #15](https://github.com/jcambert/HStack/pull/15), squash merge `cf6397a6543c7e74bb231ca085136425399a9d6e`.
+- [PR CI #138](https://github.com/jcambert/HStack/actions/runs/38047683192): **5/5** jobs passed on tested head `41a0e8999610e11847fc05e904c849ffa437416f`.
+- [Main CI #139](https://github.com/jcambert/HStack/actions/runs/38048112197): **5/5** jobs passed on merged commit `cf6397a6543c7e74bb231ca085136425399a9d6e`.
 
-## Remaining release checks
+## Implemented and validated
 
-- [ ] PR candidate packaging for `win-x64`, `linux-x64`, and `linux-arm64` passes with verified SHA-256 manifests (now required by `publish-artifacts` on PRs).
-- [ ] Merge the **tested head SHA** only after Linux M8, Windows, and artifacts are all green.
-- [ ] Re-check the post-merge `main` workflow and its three delivery artifacts.
-- [ ] Update the final release note / roadmap to the observed post-merge result.
+- Scoped fix to the dynamically generated AppHost project for the experimental `ASPIRECERTIFICATES001` diagnostic; normal warnings remain errors.
+- Linux `m8-smoke.sh` reinstated as a **required** CI gate with Aspire CLI 13.6.0.
+- Real Aspire AppHost build/start/status/dashboard and orchestration switching passed.
+- Actual workspace OCI checks passed: non-root identity, read-only root filesystem, no privileged mode, dropped capabilities, no Docker socket and loopback-only host ports.
+- OpenViking started and reported healthy with a non-root UID/GID and owner-private 0600 configuration/root-key source.
+- The genuine pinned full agent image was built in M3 and reused/checked in M8 via immutable toolchain digest/image labels, rather than substituting the base image.
+- Windows restore/build/unit, Linux build/unit/integration and M3–M8 gates passed on `main`.
+- Release artifacts `hstack-win-x64`, `hstack-linux-x64` and `hstack-linux-arm64` were packaged, checksum-verified with `sha256sum -c` and uploaded successfully in CI #139.
 
-Security remains mandatory across Compose and Aspire. Neither `WithoutHttpsCertificate()`'s scoped compile-time diagnostic nor its avoidance of Aspire certificate injection disables HStack corporate CA trust or TLS verification.
+## Remaining operational limitations (not blockers for CI milestone closure)
 
-## Operating constraints
+- Existing root-owned OpenViking files require backed-up, controlled ownership migration when adopting the non-root container; never loosen credential access permissions.
+- Runtime smoke was exercised on the GitHub Linux x64 runner, **not** natively on Linux ARM64 or Windows hosts. The latter platforms are covered by their declared package/build/unit gates only.
+- Aspire certificate auto-injection is intentionally suppressed because of the read-only root filesystem; HStack-owned corporate CA/TLS verification is preserved.
+- Upstream tool downloads may be rate-limited. M8 CI reuses the real full agent image already built/tested by M3 rather than silently substituting a base image.
 
-The Linux CI validates non-root OpenViking on a fresh, runner-owned data root. Existing installations with root-owned historical OpenViking data may need a **controlled ownership migration** after backup; do not widen file permissions to 0777 or disclose the root key.
+## Decision
 
-M9 remains deferred until the M8 release checks are closed.
+**Close M8 for the implemented CI/release acceptance criteria.** Keep platform-specific runtime matrix expansion and legacy OpenViking ownership migration as future operational hardening; M9 remains deferred pending prioritization.
