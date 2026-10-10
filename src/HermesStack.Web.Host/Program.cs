@@ -142,7 +142,25 @@ app.MapGet("/api/help/{topic}", async (string topic, CancellationToken ct) =>
         return Results.NotFound();
     }
 
+    // Published Web.Host keeps manuals beside its executable. During
+    // dotnet run, find only the checked-out HermesStack solution root.
     var path = Path.Combine(AppContext.BaseDirectory, "manual", file);
+    if (!File.Exists(path))
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
+             directory is not null; directory = directory.Parent)
+        {
+            if (!File.Exists(Path.Combine(directory.FullName, "HermesStack.slnx")))
+            {
+                continue;
+            }
+
+            path = Path.Combine(directory.FullName,
+                topic == "start" ? "docs/INDEX.md" : "docs/guides/DEVELOPPER-AVEC-HSTACK.md");
+            break;
+        }
+    }
+
     return File.Exists(path)
         ? Results.Text(await File.ReadAllTextAsync(path, ct), "text/plain; charset=utf-8")
         : Results.NotFound();

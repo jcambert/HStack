@@ -58,11 +58,15 @@ status() {
 csrf="$(curl -k -fsS -b "$root/cookies" "$url/api/session" | jq -r '.csrf')"
 [[ "$csrf" =~ ^[A-F0-9]{64}$ ]]
 
+echo '[M10] Session and hostile-origin/CSRF checks passed'
 # Access a real, bundled WASM asset and the Markdown user manual.
+echo '[M10] Verify authenticated index and WASM framework'
 curl -k -fsS -b "$root/cookies" "$url/" | grep -q 'HermesStack'
 [[ "$(status -b "$root/cookies" "$url/_framework/blazor.webassembly.js")" == 200 ]]
+echo '[M10] Verify bundled Markdown guide'
 curl -k -fsS -b "$root/cookies" "$url/api/help/start" | grep -q 'Guide utilisateur'
 
+echo '[M10] Verify project and CLI state parity'
 # A project registered from the UI must appear in the SAME CLI YAML database.
 data="$(jq -nc --arg path "$root/project" '{id:"m10-demo",name:"M10 Demo",hostPath:$path}')"
 [[ "$(status -b "$root/cookies" -H "Origin: $url" -H "X-HStack-CSRF: $csrf" \

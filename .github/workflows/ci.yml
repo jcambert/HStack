@@ -38,6 +38,10 @@ jobs:
         run: dotnet test tests/HermesStack.UnitTests/HermesStack.UnitTests.csproj --no-build -c Release
       - name: Integration tests
         run: dotnet test tests/HermesStack.IntegrationTests/HermesStack.IntegrationTests.csproj --no-build -c Release
+      - name: M10 secure API and real Chrome WASM rendering gate (required)
+        run: |
+          bash tests/e2e/m10-web-smoke.sh
+          bash tests/e2e/m10-browser-smoke.sh
       - name: M3 Sessions regression gate
         run: bash tests/e2e/m3-smoke.sh
       - name: M4 Network & Security regression gate
@@ -55,10 +59,6 @@ jobs:
           echo "$RUNNER_TEMP/hstack-aspire-tools" >> "$GITHUB_PATH"
       - name: M8 Aspire runtime end-to-end gate (required)
         run: bash tests/e2e/m8-smoke.sh
-      - name: M10 secure API and real Chrome WASM rendering gate (required)
-        run: |
-          bash tests/e2e/m10-web-smoke.sh
-          bash tests/e2e/m10-browser-smoke.sh
 
   windows-compile:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows_validation }}
