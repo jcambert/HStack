@@ -62,7 +62,9 @@ echo '[M10] Session and hostile-origin/CSRF checks passed'
 # Access a real, bundled WASM asset and the Markdown user manual.
 echo '[M10] Verify authenticated index and WASM framework'
 curl -k -fsS -b "$root/cookies" "$url/" | grep -q 'HermesStack'
+echo '[M10] Authenticated index available'
 [[ "$(status -b "$root/cookies" "$url/_framework/blazor.webassembly.js")" == 200 ]]
+echo '[M10] WebAssembly framework available'
 echo '[M10] Verify bundled Markdown guide'
 curl -k -fsS -b "$root/cookies" "$url/api/help/start" | grep -q 'Guide utilisateur'
 
