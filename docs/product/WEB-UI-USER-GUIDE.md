@@ -47,6 +47,16 @@ Le tableau de bord se rafraîchit toutes les trente secondes ; l'API et le navig
 - L'interface **ne remplace pas** les sauvegardes Git ni l'examen des modifications faites par les agents.
 - La vérification runtime Docker/Aspire de CI est sur Linux x64 ; Windows est validé par compilation/tests et par vérification des packages, pas par un navigateur Windows en situation réelle.
 
+## Utiliser l'interface après une compilation Visual Studio
+
+Le bouton **Générer la solution** compile plusieurs exécutables dans des dossiers distincts. À la différence du ZIP de distribution, le dossier `web/` n'est pas présent sous `HermesStack.Cli/bin/Debug/net10.0/`.
+
+Sur une version incluant la correction de développement M10, `hstack.exe ui` retrouve automatiquement le `hstack-web.exe` compilé dans `HermesStack.Web.Host/bin/Debug/net10.0/`, **uniquement si tu as construit la solution entière** et que tu lances bien le binaire issu de ce dépôt. Aucune copie manuelle des fichiers WASM n'est nécessaire.
+
+Tu peux aussi sélectionner **HermesStack.Web.Host → Définir comme projet de démarrage** dans Visual Studio, puis appuyer sur **F5**. Cette méthode fonctionne même si tu n'as compilé que le projet Web Host. Pour distinguer plusieurs `hstack.exe` présents sur le PC, lance directement `src\\HermesStack.Cli\\bin\\Debug\\net10.0\\hstack.exe ui` depuis la racine du dépôt. Les builds `Release` utilisent leur dossier `bin/Release/net10.0` respectif.
+
+Si tu utilises une version de HStack antérieure à cette correction, démarre `HermesStack.Web.Host` directement ou utilise la commande `dotnet run` ci-dessous. **Ne copie pas seulement `hstack-web.exe`** : le client Blazor a besoin de ses assets associés.
+
 ## Développer l'interface depuis le dépôt
 
 ```powershell

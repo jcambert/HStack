@@ -63,3 +63,8 @@ This certifies the supported GitHub Actions CI/release workflow; it is not a cla
 M10 adds **`hstack ui`**, a localhost-only HTTPS Blazor WebAssembly/MudBlazor interface for projects, Docker Compose/Aspire status, agents, diagnostics, ports, backup and bundled task-oriented help. It **reuses existing Application services** and leaves the CLI unchanged for all existing commands. See the [UI user guide](docs/product/WEB-UI-USER-GUIDE.md) and [ADR-024](docs/agile/adr/ADR-024.md). The complete distribution bundles `web/hstack-web` (or `web/hstack-web.exe`) next to the CLI; `hstack ui` is not available in older packages. Local HTTPS uses an ephemeral self-signed certificate, with explicit browser trust on first visit. No MudExtensions dependency or remote browser shell is included.
 
 M10 verification evidence and host limitations are recorded in the [M10 report](docs/agile/M10-REPORT.md). The web UI is a secure localhost companion, **not** a remote shell or secret-store frontend; agent login continues using the CLI.
+
+
+### Visual Studio / source build workflow
+
+Building `HermesStack.slnx` from Visual Studio produces **separate** `HermesStack.Cli/bin/<Config>/net10.0/` and `HermesStack.Web.Host/bin/<Config>/net10.0/` outputs. The CLI's `hstack ui` discovers that exact sibling project output when executed from its solution-build folder (Debug or Release); packaged builds still prefer the adjacent `web/` host and do not search arbitrary directories. Alternatively set `HermesStack.Web.Host` as the startup project in Visual Studio and use F5. See [Visual Studio guide](docs/product/WEB-UI-USER-GUIDE.md#utiliser-linterface-après-une-compilation-visual-studio).
