@@ -1746,17 +1746,27 @@ internal static class HStackCli
 
     private static async Task<int> UiAsync(string[] args, IProcessRunner runner)
     {
-        var executable = Path.Combine(
+        // The downloadable distribution always uses the adjacent web/
+        // directory. Visual Studio solution builds instead place each
+        // executable in its own project's bin/Debug|Release/net10.0 folder.
+        var packagedHost = Path.Combine(
             AppContext.BaseDirectory,
             "web",
             OperatingSystem.IsWindows() ? "hstack-web.exe" : "hstack-web");
-        if (!File.Exists(executable))
+        var executable = File.Exists(packagedHost)
+            ? packagedHost
+            : FindLocalSolutionUiHost(AppContext.BaseDirectory);
+
+        if (executable is null)
         {
             throw new FileNotFoundException(
-                "HermesStack Web UI is not packaged beside this CLI. " +
-                "Download a complete distribution or, from the source repository, " +
-                "run 'dotnet run --project src/HermesStack.Web.Host -- --no-browser'.",
-                executable);
+                "HermesStack Web UI not found. For a Visual Studio build, " +
+                "build the entire HermesStack.slnx solution (including HermesStack.Web.Host), " +
+                "then run hstack.exe ui again. Alternatively set HermesStack.Web.Host " +
+                "as the Visual Studio startup project (F5), or run " +
+                "'dotnet run --project src/HermesStack.Web.Host' from the repository root. " +
+                "Installed releases require the complete distribution with the sibling web/ directory.",
+                packagedHost);
         }
 
         var result = await runner.RunAsync(
@@ -1764,7 +1774,39 @@ internal static class HStackCli
         return result.ExitCode;
     }
 
-    private static int ShowVersion(string workspaceVersion)
+    private static string? FindLocalSolutionUiHost(string cliBaseDirectory)
+    {
+        // No searching arbitrary PATH/current directory, and no fallback for
+        // installed releases. Only standard solution build layouts qualify.
+        var tfm = new DirectoryInfo(Path.GetFullPath(cliBaseDirectory));
+        var configuration = tfm.Parent;
+        var bin = configuration?.Parent;
+        var cliProject = bin?.Parent;
+        var src = cliProject?.Parent;
+        var solution = src?.Parent;
+
+        if (tfm.Name != "net10.0" ||
+            configuration?.Name is not ("Debug" or "Release") ||
+            bin?.Name != "bin" ||
+            cliProject?.Name != "HermesStack.Cli" ||
+            src?.Name != "src" ||
+            solution is null ||
+            !File.Exists(Path.Combine(solution.FullName, "HermesStack.slnx")))
+        {
+            return null;
+        }
+
+        var host = Path.Combine(
+            src.FullName,
+            "HermesStack.Web.Host",
+            "bin",
+            configuration.Name,
+            tfm.Name,
+            OperatingSystem.IsWindows() ? "hstack-web.exe" : "hstack-web");
+        return File.Exists(host) ? host : null;
+    }
+
+        private static int ShowVersion(string workspaceVersion)
     {
         AnsiConsole.MarkupLine(
             $"HermesStack {Markup.Escape(workspaceVersion)}-dev");
